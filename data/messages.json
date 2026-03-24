@@ -1,0 +1,16 @@
+[
+  {
+    "id": "381a28a6-202d-434f-9039-3114b74d0731",
+    "from": "me",
+    "to": "anita",
+    "text": "Hi! Have you completed DBMS notes?",
+    "time": "12:20"
+  },
+  {
+    "id": "c0551391-f5a7-4979-a343-3d8f66654eb7",
+    "from": "anita",
+    "to": "me",
+    "text": "Yes, I finished Unit-3 today 😊",
+    "time": "12:21"
+  }
+]

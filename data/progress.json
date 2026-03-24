@@ -1,0 +1,14 @@
+[
+  {
+    "subject": "DBMS",
+    "percent": 75
+  },
+  {
+    "subject": "Computer Networks",
+    "percent": 60
+  },
+  {
+    "subject": "Software Engineering",
+    "percent": 85
+  }
+]

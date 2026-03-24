@@ -1,0 +1,20 @@
+[
+  {
+    "id": "rahul",
+    "name": "Rahul",
+    "course": "BCA",
+    "avatar": null
+  },
+  {
+    "id": "anita",
+    "name": "Anita",
+    "course": "BCA",
+    "avatar": null
+  },
+  {
+    "id": "amit",
+    "name": "Amit",
+    "course": "BCA",
+    "avatar": null
+  }
+]

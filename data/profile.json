@@ -1,0 +1,11 @@
+[
+  {
+    "id": "student-1",
+    "name": "Student Name",
+    "course": "BCA",
+    "semester": "Semester IV",
+    "email": "student@email.com",
+    "avatar": null,
+    "points": 350
+  }
+]

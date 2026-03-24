@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Buddy — Notes</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  .page-wrap { flex: 1; }
+  .site-footer { margin-top: auto; }
+
+  .notes-layout { display:grid; grid-template-columns:340px 1fr; gap:1.5rem; align-items:start; }
+
+  /* Upload panel */
+  .upload-panel .card { position:sticky; top:80px; }
+  .upload-zone {
+    border:2px dashed var(--border); border-radius:10px;
+    padding:1.5rem; text-align:center;
+    cursor:pointer; transition:all var(--transition);
+    margin-bottom:1rem; background:var(--surface2);
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color:var(--gold2); background:var(--gold-pale); }
+  .upload-zone .uz-icon { font-size:2rem; margin-bottom:.5rem; }
+  .upload-zone p { font-size:.83rem; color:var(--ink3); }
+  .upload-zone input { display:none; }
+  .file-chosen { font-size:.82rem; color:var(--teal); font-weight:600; margin-top:.4rem; }
+
+  .progress-bar-wrap { display:none; margin-bottom:.8rem; }
+  .progress-bar-wrap .progress-track { height:6px; }
+
+  /* Filter bar */
+  .filter-bar {
+    display:flex; gap:.8rem; align-items:center;
+    margin-bottom:1.2rem; flex-wrap:wrap;
+  }
+  .filter-bar input { flex:1; min-width:160px; }
+  .filter-bar label { display:flex; align-items:center; gap:.4rem; font-size:.85rem; color:var(--ink2); cursor:pointer; white-space:nowrap; }
+
+  /* Notes table */
+  .notes-table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; }
+  thead th {
+    text-align:left; font-size:.78rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.05em; color:var(--ink3);
+    padding:.7rem 1rem; background:var(--surface2);
+    border-bottom:1px solid var(--border);
+  }
+  thead th:first-child { border-radius:8px 0 0 8px; }
+  thead th:last-child  { border-radius:0 8px 8px 0; }
+  tbody tr {
+    border-bottom:1px solid var(--border);
+    transition:background var(--transition);
+    cursor:pointer;
+  }
+  tbody tr:hover { background:var(--gold-pale); }
+  tbody td { padding:.75rem 1rem; font-size:.88rem; vertical-align:middle; }
+  .td-file { font-weight:500; display:flex; align-items:center; gap:.5rem; }
+  .file-ext {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:28px; height:28px; border-radius:6px;
+    background:var(--gold-pale); color:var(--gold);
+    font-size:.65rem; font-weight:700; text-transform:uppercase; flex-shrink:0;
+    font-family:var(--font-mono);
+  }
+  .file-ext.pdf  { background:#fdecea; color:#c0392b; }
+  .file-ext.docx { background:#e3f0ff; color:#1565c0; }
+  .file-ext.pptx { background:#fff3e0; color:#e65100; }
+
+  /* Empty state */
+  .empty-state { text-align:center; padding:3rem 1rem; color:var(--ink3); }
+  .empty-state .e-icon { font-size:2.5rem; margin-bottom:.8rem; }
+
+  /* Note modal */
+  .note-modal-body p { font-size:.9rem; color:var(--ink2); margin-bottom:.4rem; }
+  .note-modal-body strong { color:var(--ink); }
+
+  @media(max-width:760px){ .notes-layout { grid-template-columns:1fr; } }
+
+  /* ===== ENHANCED ANIMATIONS ===== */
+  .card, .feat-card, .stat-chip, .note-row, .task-item, .conn-card, .quiz-card {
+    animation: fadeUp .5s cubic-bezier(.4,0,.2,1) both;
+  }
+  .task-item { transition: all .22s cubic-bezier(.4,0,.2,1); }
+  .task-item:hover {
+    transform: translateX(4px);
+    border-color: rgba(201,135,58,.3);
+    box-shadow: 0 4px 16px rgba(26,18,8,.1);
+  }
+  .task-check { transition: all .3s cubic-bezier(.34,1.56,.64,1) !important; }
+  .task-check.checked {
+    transform: scale(1.15);
+    animation: checkBounce .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes checkBounce {
+    0%  { transform: scale(0); }
+    60% { transform: scale(1.3); }
+    100%{ transform: scale(1); }
+  }
+  .stat-chip { transition: all .22s ease; cursor: default; }
+  .stat-chip:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(26,18,8,.12);
+    border-color: rgba(201,135,58,.25);
+  }
+  .stat-chip .sc-val { transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+  .stat-chip:hover .sc-val { transform: scale(1.1); }
+  .section-title::after {
+    background: linear-gradient(90deg, var(--gold), var(--border), transparent);
+    animation: titleLine 2s ease both;
+  }
+  @keyframes titleLine {
+    from { transform: scaleX(0); transform-origin: left; }
+    to   { transform: scaleX(1); transform-origin: left; }
+  }
+  .upload-zone { transition: all .25s ease; }
+  .upload-zone:hover {
+    transform: scale(1.01);
+    box-shadow: 0 4px 20px rgba(201,135,58,.15);
+  }
+  tbody tr {
+    animation: fadeUp .35s ease both;
+    transition: background .2s ease, transform .2s ease !important;
+  }
+  tbody tr:hover { transform: translateX(2px); }
+  .badge { transition: all .2s cubic-bezier(.34,1.2,.64,1); }
+  .badge:hover { transform: scale(1.08) translateY(-1px); }
+  .form-group { position: relative; }
+  .btn { overflow: hidden; position: relative; }
+  .btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.25) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform .5s ease;
+  }
+  .btn:hover::after { transform: translateX(100%); }
+  .profile-avatar, .avatar-lg {
+    transition: transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease !important;
+  }
+  .profile-avatar:hover, .avatar-lg:hover {
+    transform: scale(1.08) rotate(-3deg) !important;
+    box-shadow: 0 8px 32px rgba(201,135,58,.5) !important;
+  }
+  .conn-card, .peer-card, .req-card { transition: all .22s ease; }
+  .conn-card:hover, .peer-card:hover, .req-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 32px rgba(26,18,8,.14);
+    border-color: rgba(201,135,58,.25);
+  }
+  .opt-item, .opt-label { transition: all .2s cubic-bezier(.34,1.2,.64,1) !important; }
+  .opt-item:hover, .opt-label:hover { transform: translateX(4px) !important; }
+  .progress-fill {
+    background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold3));
+    background-size: 200% 100%;
+    animation: shimmerBar 2.5s ease infinite !important;
+  }
+  @keyframes shimmerBar {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  .modal { animation: modalIn .35s cubic-bezier(.34,1.56,.64,1) both !important; }
+  .rank-list li:nth-child(1) { animation-delay: .0s; }
+  .rank-list li:nth-child(2) { animation-delay: .06s; }
+  .rank-list li:nth-child(3) { animation-delay: .12s; }
+  .rank-list li:nth-child(4) { animation-delay: .18s; }
+  /* ===== END ENHANCED ANIMATIONS ===== */
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="logo" href="dashboard.html"><div class="logo-icon">📚</div> Study Buddy</a>
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">☰</button>
+  <nav class="main-nav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="notes.html" class="active">Notes</a>
+    <a href="planner.html">Planner</a>
+    <a href="test.html">Tests</a>
+    <a href="connection.html">Connect</a>
+    <a href="profile.html">Profile</a>
+  </nav>
+</header>
+
+<div class="page-wrap">
+  <div class="section-title fade-up">📝 My Notes</div>
+
+  <div class="notes-layout">
+
+    <!-- Upload panel -->
+    <div class="upload-panel fade-up">
+      <div class="card">
+        <h3 style="margin-bottom:1.2rem;">Upload a Note</h3>
+
+        <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="uz-icon">📤</div>
+          <p>Click or drag & drop a file here</p>
+          <p id="fileChosen" class="file-chosen" style="display:none;"></p>
+          <input type="file" id="fileInput" onchange="fileSelected(this)">
+        </div>
+
+        <div class="form-group">
+          <label>Subject</label>
+          <input type="text" id="subject" placeholder="e.g. DBMS">
+        </div>
+
+        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;margin-bottom:1rem;cursor:pointer;">
+          <input type="checkbox" id="publicNote"> Make visible to all students
+        </label>
+
+        <div class="progress-bar-wrap" id="progressWrap">
+          <div class="progress-track"><div class="progress-fill" id="uploadBar" style="width:0%"></div></div>
+          <p style="font-size:.78rem;color:var(--ink3);margin-top:.3rem;" id="uploadPct">0%</p>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="uploadNote()">Upload Note</button>
+      </div>
+    </div>
+
+    <!-- Notes list -->
+    <div class="fade-up">
+      <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="🔍  Search by filename or subject…" oninput="renderTable()">
+        <label><input type="checkbox" id="adminOnly" onchange="renderTable()"> Admin uploads only</label>
+      </div>
+
+      <div class="card" style="padding:0;">
+        <div class="notes-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>File</th>
+                <th>Uploader</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="notesTable"></tbody>
+          </table>
+          <div class="empty-state" id="emptyState" style="display:none;">
+            <div class="e-icon">📭</div>
+            <p>No notes found. Upload your first one!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Note Modal -->
+<div class="modal-backdrop" id="noteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Note Details</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="note-modal-body" id="modalBody"></div>
+    <div style="display:flex;gap:.6rem;margin-top:1.4rem;flex-wrap:wrap;">
+      <a id="modalDownload" class="btn btn-primary btn-sm" href="#" download>⬇ Download</a>
+      <button class="btn btn-secondary btn-sm" onclick="saveNote()">Save Changes</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteNote()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">© 2026 Study Buddy · Your learning companion 😊</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:5500';
+let notes = [];
+let currentNote = null;
+
+function showToast(msg, type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function fileSelected(input) {
+  const name = input.files[0]?.name;
+  if (name) {
+    const el = document.getElementById('fileChosen');
+    el.textContent = name; el.style.display='block';
+  }
+}
+
+// Drag & drop
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const fi = document.getElementById('fileInput');
+  fi.files = e.dataTransfer.files;
+  fileSelected(fi);
+});
+
+async function uploadNote() {
+  const file    = document.getElementById('fileInput').files[0];
+  const subject = document.getElementById('subject').value.trim();
+  const isPublic= document.getElementById('publicNote').checked;
+  if (!file || !subject) return showToast('Please select a file and enter a subject', 'error');
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('subject', subject);
+  fd.append('public', isPublic);
+  fd.append('uploader', 'me');
+
+  document.getElementById('progressWrap').style.display = 'block';
+  const bar = document.getElementById('uploadBar');
+  const pct = document.getElementById('uploadPct');
+
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const p = Math.round(e.loaded/e.total*100);
+        bar.style.width = p+'%'; pct.textContent = p+'%';
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status < 300) {
+        showToast('Note uploaded successfully!', 'success');
+        document.getElementById('fileInput').value='';
+        document.getElementById('fileChosen').style.display='none';
+        document.getElementById('subject').value='';
+        document.getElementById('progressWrap').style.display='none';
+        bar.style.width='0%';
+        loadNotes();
+      } else { showToast('Upload failed', 'error'); }
+    };
+    xhr.open('POST', `${API}/api/notes`);
+    xhr.send(fd);
+  } catch { showToast('Cannot connect to server', 'error'); }
+}
+
+async function loadNotes() {
+  try {
+    const r = await fetch(`${API}/api/notes`);
+    const data = await r.json();
+    notes = data.map(n => ({
+      id:       String(n.id),
+      subject:  n.subject_name,
+      filename: n.file_name,
+      uploader: n.uploader || 'me',
+      date:     n.uploaded_at ? n.uploaded_at.slice(0,10) : '',
+      public:   true,
+      url:      n.downloadUrl || '#'
+    }));
+  } catch {
+    notes = [
+      { id:'1', subject:'Software Engineering', filename:'Unit-1.pdf', uploader:'admin', date:'2026-03-01', public:true, url:'#' },
+      { id:'2', subject:'DBMS', filename:'Chapter2_ER_Diagram.pdf', uploader:'Rahul', date:'2026-03-10', public:true, url:'#' },
+      { id:'3', subject:'Computer Networks', filename:'OSI_Model_Notes.docx', uploader:'admin', date:'2026-03-15', public:false, url:'#' },
+    ];
+  }
+  renderTable();
+}
+
+function extClass(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  return { pdf:'pdf', docx:'docx', doc:'docx', pptx:'pptx', ppt:'pptx' }[ext] || '';
+}
+
+function renderTable() {
+  const q     = document.getElementById('searchInput').value.toLowerCase();
+  const admin = document.getElementById('adminOnly').checked;
+  const tbody = document.getElementById('notesTable');
+  const empty = document.getElementById('emptyState');
+
+  const filtered = notes.filter(n => {
+    if (admin && n.uploader !== 'admin') return false;
+    return !q || n.subject.toLowerCase().includes(q) || n.filename.toLowerCase().includes(q);
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = ''; empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+  const ext = n => n.filename.split('.').pop().toLowerCase();
+  tbody.innerHTML = filtered.map(n => `
+    <tr onclick="openModal('${n.id}')">
+      <td><span class="badge badge-grey">${n.subject}</span></td>
+      <td class="td-file">
+        <span class="file-ext ${extClass(n.filename)}">${ext(n)}</span>
+        ${n.filename}
+      </td>
+      <td>${n.uploader || '—'}</td>
+      <td style="color:var(--ink3);font-size:.82rem;">${n.date || ''}</td>
+      <td><a href="${n.url||'#'}" download class="btn btn-secondary btn-sm" onclick="event.stopPropagation()">⬇</a></td>
+    </tr>`).join('');
+}
+
+function openModal(id) {
+  currentNote = notes.find(n => n.id === id);
+  if (!currentNote) return;
+  document.getElementById('modalTitle').textContent = currentNote.filename;
+  document.getElementById('modalDownload').href = currentNote.url || '#';
+  document.getElementById('modalBody').innerHTML = `
+    <p><strong>Subject:</strong> <input type="text" id="modalSubject" value="${currentNote.subject}" style="margin-top:.3rem;"></p>
+    <p style="margin-top:.8rem;"><strong>Uploader:</strong> ${currentNote.uploader || '—'}</p>
+    <p style="margin-top:.4rem;"><strong>Date:</strong> ${currentNote.date || '—'}</p>
+    <label style="display:flex;align-items:center;gap:.5rem;margin-top:.8rem;cursor:pointer;">
+      <input type="checkbox" id="modalPublic" ${currentNote.public?'checked':''}> Public
+    </label>`;
+  document.getElementById('noteModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('noteModal').classList.remove('open'); }
+
+async function saveNote() {
+  if (!currentNote) return;
+  const subject  = document.getElementById('modalSubject').value.trim();
+  const isPublic = document.getElementById('modalPublic').checked;
+  try {
+    await fetch(`${API}/api/notes/${currentNote.id}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ subject, public: isPublic })
+    });
+    showToast('Note updated', 'success'); closeModal(); loadNotes();
+  } catch { showToast('Failed to save', 'error'); }
+}
+
+async function deleteNote() {
+  if (!currentNote) return;
+  try {
+    await fetch(`${API}/api/notes/${currentNote.id}`, { method:'DELETE' });
+    showToast('Note deleted', 'success'); closeModal(); loadNotes();
+  } catch { showToast('Failed to delete', 'error'); }
+}
+
+document.getElementById('noteModal').addEventListener('click', e => { if(e.target===e.currentTarget)closeModal(); });
+
+loadNotes();
+</script>
+
+<script>
+// ===== GLOBAL ANIMATION ENHANCEMENTS =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+document.querySelectorAll('.card, .stat-chip').forEach((el, i) => {
+  if (!el.style.animationDelay) {
+    el.style.animationDelay = (i * 0.05) + 's';
+    el.style.animation = 'fadeUp .5s cubic-bezier(.4,0,.2,1) both';
+    el.style.animationDelay = (i * 0.05) + 's';
+  }
+});
+
+setTimeout(() => {
+  document.querySelectorAll('.progress-fill[data-width]').forEach(el => {
+    el.style.width = el.dataset.width;
+  });
+}, 200);
+
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    const r = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    r.style.cssText = `
+      position:absolute;width:6px;height:6px;border-radius:50%;
+      background:rgba(255,255,255,.5);
+      left:${e.clientX-rect.left-3}px;top:${e.clientY-rect.top-3}px;
+      animation:ripple .5s ease forwards;pointer-events:none;
+    `;
+    if (!document.querySelector('#rippleStyle')) {
+      const s = document.createElement('style');
+      s.id = 'rippleStyle';
+      s.textContent = '@keyframes ripple{to{width:80px;height:80px;margin:-37px;opacity:0;}}';
+      document.head.appendChild(s);
+    }
+    this.style.overflow='hidden'; this.style.position='relative';
+    this.appendChild(r);
+    setTimeout(() => r.remove(), 500);
+  });
+});
+// ===== END GLOBAL ENHANCEMENTS =====
+</script>
+
+</body>
+</html>

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Buddy — Tests</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* ── Sticky footer layout ── */
+  html, body { height: 100%; }
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+  .page-wrap { flex: 1; }
+
+  /* Test cards grid */
+  .test-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:1.2rem; margin-bottom:2rem; }
+
+  .test-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); overflow:hidden;
+    display:flex; flex-direction:column;
+    transition:all var(--transition); cursor:pointer;
+    box-shadow:var(--shadow);
+  }
+  .test-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-lg); }
+  .test-card-header {
+    background:linear-gradient(135deg,#1a1208,#2f1f0a);
+    padding:1.2rem 1.4rem 1rem;
+    position:relative; overflow:hidden;
+  }
+  .test-card-header::after {
+    content:'🧪'; position:absolute; right:1rem; top:.5rem;
+    font-size:2.8rem; opacity:.15;
+  }
+  .test-card-header h3 { color:#fff; font-size:1rem; font-weight:600; position:relative; }
+  .test-card-header .test-meta { color:rgba(255,255,255,.55); font-size:.78rem; margin-top:.25rem; position:relative; }
+  .test-card-body { padding:1rem 1.4rem; flex:1; }
+  .test-card-body p { font-size:.85rem; color:var(--ink3); }
+  .test-card-footer { padding:.8rem 1.4rem; border-top:1px solid var(--border); display:flex; gap:.5rem; }
+
+  /* Create test */
+  .create-panel { display:none; }
+  .create-panel.open { display:block; }
+  .question-block {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:1.2rem; margin-bottom:1rem;
+  }
+  .option-row { display:flex; align-items:center; gap:.6rem; margin-top:.5rem; }
+  .option-row input[type=text] { flex:1; }
+  .option-row label { display:flex; align-items:center; gap:.3rem; font-size:.83rem; white-space:nowrap; }
+
+  /* Take test */
+  .take-panel { display:none; }
+  .take-panel.open { display:block; }
+  .question-take {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:1.3rem 1.5rem; margin-bottom:1.2rem;
+  }
+  .question-take h4 { font-size:.98rem; font-weight:600; margin-bottom:.9rem; }
+  .option-btn {
+    display:block; width:100%; text-align:left;
+    padding:.6rem .9rem; margin:.3rem 0;
+    background:var(--surface2); border:1.5px solid var(--border);
+    border-radius:8px; cursor:pointer; font-family:var(--font-body);
+    font-size:.88rem; transition:all var(--transition);
+  }
+  .option-btn:hover   { border-color:var(--gold2); background:var(--gold-pale); }
+  .option-btn.correct { border-color:var(--teal); background:var(--teal-pale); color:var(--teal); font-weight:600; }
+  .option-btn.wrong   { border-color:var(--red); background:var(--red-pale); color:var(--red); }
+  .option-btn.reveal  { border-color:var(--teal); background:var(--teal-pale); color:var(--teal); font-weight:600; }
+
+  /* Summary modal content */
+  .summary-score {
+    text-align:center; padding:1.5rem 0;
+    font-family:var(--font-head);
+  }
+  .summary-score .big { font-size:3.5rem; font-weight:900; color:var(--gold); }
+  .summary-score .of  { font-size:1.2rem; color:var(--ink3); }
+
+  /* ===== ENHANCED ANIMATIONS ===== */
+  .card, .feat-card, .stat-chip, .note-row, .task-item, .conn-card, .quiz-card {
+    animation: fadeUp .5s cubic-bezier(.4,0,.2,1) both;
+  }
+  .task-item {
+    transition: all .22s cubic-bezier(.4,0,.2,1);
+  }
+  .task-item:hover {
+    transform: translateX(4px);
+    border-color: rgba(201,135,58,.3);
+    box-shadow: 0 4px 16px rgba(26,18,8,.1);
+  }
+  .task-check {
+    transition: all .3s cubic-bezier(.34,1.56,.64,1) !important;
+  }
+  .task-check.checked {
+    transform: scale(1.15);
+    animation: checkBounce .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes checkBounce {
+    0%  { transform: scale(0); }
+    60% { transform: scale(1.3); }
+    100%{ transform: scale(1); }
+  }
+  .stat-chip {
+    transition: all .22s ease;
+    cursor: default;
+  }
+  .stat-chip:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(26,18,8,.12);
+    border-color: rgba(201,135,58,.25);
+  }
+  .stat-chip .sc-val {
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .stat-chip:hover .sc-val { transform: scale(1.1); }
+  .section-title::after {
+    background: linear-gradient(90deg, var(--gold), var(--border), transparent);
+    animation: titleLine 2s ease both;
+  }
+  @keyframes titleLine {
+    from { transform: scaleX(0); transform-origin: left; }
+    to   { transform: scaleX(1); transform-origin: left; }
+  }
+  .upload-zone {
+    transition: all .25s ease;
+  }
+  .upload-zone:hover {
+    transform: scale(1.01);
+    box-shadow: 0 4px 20px rgba(201,135,58,.15);
+  }
+  tbody tr {
+    animation: fadeUp .35s ease both;
+    transition: background .2s ease, transform .2s ease !important;
+  }
+  tbody tr:hover { transform: translateX(2px); }
+  .badge { transition: all .2s cubic-bezier(.34,1.2,.64,1); }
+  .badge:hover { transform: scale(1.08) translateY(-1px); }
+  .form-group { position: relative; }
+  .btn { overflow: hidden; position: relative; }
+  .btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.25) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform .5s ease;
+  }
+  .btn:hover::after { transform: translateX(100%); }
+  .profile-avatar, .avatar-lg {
+    transition: transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease !important;
+  }
+  .profile-avatar:hover, .avatar-lg:hover {
+    transform: scale(1.08) rotate(-3deg) !important;
+    box-shadow: 0 8px 32px rgba(201,135,58,.5) !important;
+  }
+  .conn-card, .peer-card, .req-card {
+    transition: all .22s ease;
+  }
+  .conn-card:hover, .peer-card:hover, .req-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 32px rgba(26,18,8,.14);
+    border-color: rgba(201,135,58,.25);
+  }
+  .opt-item, .opt-label {
+    transition: all .2s cubic-bezier(.34,1.2,.64,1) !important;
+  }
+  .opt-item:hover, .opt-label:hover {
+    transform: translateX(4px) !important;
+  }
+  .progress-fill {
+    background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold3));
+    background-size: 200% 100%;
+    animation: shimmerBar 2.5s ease infinite !important;
+  }
+  @keyframes shimmerBar {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  .modal { animation: modalIn .35s cubic-bezier(.34,1.56,.64,1) both !important; }
+  .rank-list li:nth-child(1) { animation-delay: .0s; }
+  .rank-list li:nth-child(2) { animation-delay: .06s; }
+  .rank-list li:nth-child(3) { animation-delay: .12s; }
+  .rank-list li:nth-child(4) { animation-delay: .18s; }
+  /* ===== END ENHANCED ANIMATIONS ===== */
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="logo" href="dashboard.html"><div class="logo-icon">📚</div> Study Buddy</a>
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">☰</button>
+  <nav class="main-nav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="notes.html">Notes</a>
+    <a href="planner.html">Planner</a>
+    <a href="test.html" class="active">Tests</a>
+    <a href="connection.html">Connect</a>
+    <a href="profile.html">Profile</a>
+  </nav>
+</header>
+
+<div class="page-wrap">
+
+  <!-- Top bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.8rem;" class="fade-up">
+    <div class="section-title" style="margin-bottom:0;">🧪 Available Tests</div>
+    <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;cursor:pointer;">
+        <input type="checkbox" id="adminToggle" onchange="toggleAdmin()"> Admin mode
+      </label>
+      <button class="btn btn-primary btn-sm" id="createBtn" style="display:none;" onclick="openCreatePanel()">+ Create Test</button>
+    </div>
+  </div>
+
+  <!-- Test cards -->
+  <div class="test-grid" id="testGrid">
+    <!-- filled by JS -->
+  </div>
+
+  <!-- Create panel -->
+  <div class="create-panel card fade-up" id="createPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;">
+      <h3>Create New Test</h3>
+      <button class="btn btn-secondary btn-sm" onclick="closeCreatePanel()">Cancel</button>
+    </div>
+    <div class="form-group">
+      <label>Test Title</label>
+      <input type="text" id="testTitle" placeholder="e.g. DBMS Unit 2 Quiz">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="form-group"><label>Date</label><input type="date" id="testDate"></div>
+      <div class="form-group"><label>Time</label><input type="time" id="testTime"></div>
+    </div>
+    <h4 style="margin:1rem 0 .8rem;">Questions</h4>
+    <div id="questionsContainer"></div>
+    <button class="btn btn-secondary btn-sm" onclick="addQuestion()" style="margin-bottom:1.2rem;">+ Add Question</button>
+    <br>
+    <button class="btn btn-primary" onclick="saveTest()">Save Test</button>
+  </div>
+
+  <!-- Take test panel -->
+  <div class="take-panel card fade-up" id="takePanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <h2 id="takingTitle" style="font-size:1.3rem;"></h2>
+      <button class="btn btn-secondary btn-sm" onclick="closeTakePanel()">← Back</button>
+    </div>
+    <div class="form-group" style="max-width:260px;">
+      <label>Your Name</label>
+      <input type="text" id="userName" placeholder="Enter your name">
+    </div>
+    <div id="testArea"></div>
+    <button class="btn btn-primary" id="submitBtn" style="display:none;" onclick="submitTest()">Submit Test →</button>
+  </div>
+
+</div>
+
+<!-- Summary modal -->
+<div class="modal-backdrop" id="summaryModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Test Complete!</h3>
+      <button class="modal-close" onclick="closeSummary()">✕</button>
+    </div>
+    <div class="summary-score">
+      <div class="big" id="summaryScore">0</div>
+      <div class="of" id="summaryOf">out of 0</div>
+      <div style="margin-top:.5rem;font-size:.9rem;color:var(--ink3);" id="summaryGrade"></div>
+    </div>
+    <div id="summaryDetails" style="margin-top:.5rem;"></div>
+    <div style="display:flex;gap:.6rem;margin-top:1.4rem;">
+      <button class="btn btn-primary" onclick="location.href='dashboard.html'">Dashboard</button>
+      <button class="btn btn-secondary" onclick="closeSummary()">Review</button>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">© 2026 Study Buddy · Your learning companion 😊</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:5500';
+let tests = [];
+let currentTest = null;
+let answers = {};
+
+function showToast(msg, type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function toggleAdmin() {
+  const on = document.getElementById('adminToggle').checked;
+  document.getElementById('createBtn').style.display = on ? 'inline-flex' : 'none';
+}
+
+/* ── Load tests ── */
+async function loadTests() {
+  try {
+    const r = await fetch(`${API}/api/tests`);
+    tests = await r.json();
+  } catch {
+    tests = JSON.parse(localStorage.getItem('sb_tests') || '[]');
+    if (!tests.length) {
+      tests = [{
+        id:'demo1', title:'DBMS Basics Quiz', date:'2026-03-25', time:'10:00',
+        questions:[
+          { q:'What does DBMS stand for?', options:['Data Base Management System','Digital Binary Management System','Data Byte Mapping System','Database Machine System'], correct:0 },
+          { q:'Which of these is a relational database?', options:['MongoDB','Redis','PostgreSQL','Cassandra'], correct:2 },
+        ]
+      }];
+    }
+  }
+  renderTests();
+}
+
+function renderTests() {
+  const grid = document.getElementById('testGrid');
+  if (!tests.length) {
+    grid.innerHTML = '<p style="color:var(--ink3);">No tests available yet. Enable admin mode to create one.</p>';
+    return;
+  }
+  grid.innerHTML = tests.map(t => `
+    <div class="test-card fade-up" onclick="openTest('${t.id}')">
+      <div class="test-card-header">
+        <h3>${t.title}</h3>
+        <div class="test-meta">${t.date || ''} ${t.time ? '· '+t.time : ''}</div>
+      </div>
+      <div class="test-card-body">
+        <p>${(t.questions||[]).length} question${(t.questions||[]).length!==1?'s':''}</p>
+      </div>
+      <div class="test-card-footer">
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openTest('${t.id}')">Take Test</button>
+        ${document.getElementById('adminToggle').checked ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteTest('${t.id}')">Delete</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+/* ── Create test ── */
+let qCount = 0;
+function openCreatePanel() {
+  document.getElementById('createPanel').classList.add('open');
+  document.getElementById('createPanel').scrollIntoView({behavior:'smooth',block:'start'});
+  addQuestion();
+}
+function closeCreatePanel() {
+  document.getElementById('createPanel').classList.remove('open');
+  document.getElementById('questionsContainer').innerHTML = '';
+  qCount = 0;
+}
+
+function addQuestion() {
+  qCount++;
+  const id = `q_${qCount}`;
+  const div = document.createElement('div');
+  div.className = 'question-block'; div.id = id;
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;">
+      <strong style="font-size:.88rem;">Question ${qCount}</strong>
+      <button class="btn btn-danger btn-sm" onclick="this.closest('.question-block').remove()">Remove</button>
+    </div>
+    <div class="form-group" style="margin-bottom:.7rem;">
+      <input type="text" name="q" placeholder="Question text">
+    </div>
+    ${[0,1,2,3].map(i=>`
+      <div class="option-row">
+        <input type="text" name="opt" placeholder="Option ${i+1}">
+        <label><input type="radio" name="correct_${id}" value="${i}"> Correct</label>
+      </div>`).join('')}`;
+  document.getElementById('questionsContainer').appendChild(div);
+}
+
+async function saveTest() {
+  const title = document.getElementById('testTitle').value.trim();
+  const date  = document.getElementById('testDate').value;
+  const time  = document.getElementById('testTime').value;
+  if (!title) return showToast('Enter a test title', 'error');
+
+  const questions = [];
+  document.querySelectorAll('.question-block').forEach(block => {
+    const q   = block.querySelector('[name=q]').value.trim();
+    const opts = [...block.querySelectorAll('[name=opt]')].map(i=>i.value.trim());
+    const cor  = block.querySelector('[type=radio]:checked')?.value;
+    if (q && opts.some(o=>o)) questions.push({ q, options:opts, correct: cor!=null?+cor:0 });
+  });
+  if (!questions.length) return showToast('Add at least one question', 'error');
+
+  const test = { id: Date.now().toString(), title, date, time, questions };
+  try {
+    const r = await fetch(`${API}/api/tests`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(test)
+    });
+    tests.push(await r.json());
+  } catch {
+    tests.push(test);
+    localStorage.setItem('sb_tests', JSON.stringify(tests));
+  }
+  showToast('Test created!', 'success');
+  closeCreatePanel();
+  renderTests();
+}
+
+async function deleteTest(id) {
+  try { await fetch(`${API}/api/tests/${id}`, { method:'DELETE' }); }
+  catch {}
+  tests = tests.filter(t=>t.id!==id);
+  localStorage.setItem('sb_tests', JSON.stringify(tests));
+  renderTests();
+}
+
+/* ── Take test ── */
+function openTest(id) {
+  currentTest = tests.find(t=>t.id===id);
+  if (!currentTest) return;
+  answers = {};
+  document.getElementById('testGrid').style.display = 'none';
+  document.getElementById('createPanel').classList.remove('open');
+  document.getElementById('takingTitle').textContent = currentTest.title;
+  renderTestQuestions();
+  document.getElementById('takePanel').classList.add('open');
+  document.getElementById('takePanel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function closeTakePanel() {
+  document.getElementById('takePanel').classList.remove('open');
+  document.getElementById('testGrid').style.display = '';
+}
+
+function renderTestQuestions() {
+  const area = document.getElementById('testArea');
+  area.innerHTML = (currentTest.questions||[]).map((q,qi) => `
+    <div class="question-take" id="qtake_${qi}">
+      <h4>${qi+1}. ${q.q}</h4>
+      ${(q.options||[]).filter(o=>o).map((o,oi) => `
+        <button class="option-btn" id="opt_${qi}_${oi}" onclick="pickAnswer(${qi},${oi})">${o}</button>`).join('')}
+    </div>`).join('');
+  document.getElementById('submitBtn').style.display = 'inline-flex';
+}
+
+function pickAnswer(qi, oi) {
+  answers[qi] = oi;
+  const block = document.getElementById(`qtake_${qi}`);
+  block.querySelectorAll('.option-btn').forEach((b,i) => {
+    b.classList.toggle('correct', i === oi);
+    b.classList.remove('wrong');
+  });
+}
+
+function submitTest() {
+  const name = document.getElementById('userName').value.trim() || 'Anonymous';
+  let score = 0;
+  (currentTest.questions||[]).forEach((q,qi) => {
+    const block = document.getElementById(`qtake_${qi}`);
+    const picked = answers[qi];
+    block.querySelectorAll('.option-btn').forEach((b,i) => {
+      b.disabled = true;
+      b.classList.remove('correct','wrong');
+      if (i === q.correct) b.classList.add('reveal');
+      else if (i === picked && picked !== q.correct) b.classList.add('wrong');
+    });
+    if (picked === q.correct) score++;
+  });
+  const total = currentTest.questions.length;
+  const pct   = Math.round(score/total*100);
+
+  // Save to leaderboard
+  const results = JSON.parse(localStorage.getItem('sb_results')||'{}');
+  results[name] = (results[name]||0) + score;
+  localStorage.setItem('sb_results', JSON.stringify(results));
+
+  // Show modal
+  document.getElementById('summaryScore').textContent = score;
+  document.getElementById('summaryOf').textContent = `out of ${total}`;
+  document.getElementById('summaryGrade').textContent = pct >= 80 ? '🎉 Excellent!' : pct >= 50 ? '👍 Good effort' : '📖 Keep studying!';
+  document.getElementById('summaryDetails').innerHTML = `<p style="font-size:.9rem;text-align:center;color:var(--ink3);">${name} scored ${pct}% · ${score}/${total} correct</p>`;
+  document.getElementById('summaryModal').classList.add('open');
+}
+
+function closeSummary() { document.getElementById('summaryModal').classList.remove('open'); }
+document.getElementById('summaryModal').addEventListener('click', e=>{ if(e.target===e.currentTarget)closeSummary(); });
+
+loadTests();
+</script>
+
+<script>
+// ===== GLOBAL ANIMATION ENHANCEMENTS =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+document.querySelectorAll('.card, .stat-chip').forEach((el, i) => {
+  if (!el.style.animationDelay) {
+    el.style.animationDelay = (i * 0.05) + 's';
+    el.style.animation = 'fadeUp .5s cubic-bezier(.4,0,.2,1) both';
+    el.style.animationDelay = (i * 0.05) + 's';
+  }
+});
+
+setTimeout(() => {
+  document.querySelectorAll('.progress-fill[data-width]').forEach(el => {
+    el.style.width = el.dataset.width;
+  });
+}, 200);
+
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    const r = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    r.style.cssText = `
+      position:absolute;width:6px;height:6px;border-radius:50%;
+      background:rgba(255,255,255,.5);
+      left:${e.clientX-rect.left-3}px;top:${e.clientY-rect.top-3}px;
+      animation:ripple .5s ease forwards;pointer-events:none;
+    `;
+    if (!document.querySelector('#rippleStyle')) {
+      const s = document.createElement('style');
+      s.id = 'rippleStyle';
+      s.textContent = '@keyframes ripple{to{width:80px;height:80px;margin:-37px;opacity:0;}}';
+      document.head.appendChild(s);
+    }
+    this.style.overflow='hidden'; this.style.position='relative';
+    this.appendChild(r);
+    setTimeout(() => r.remove(), 500);
+  });
+});
+// ===== END GLOBAL ENHANCEMENTS =====
+</script>
+
+</body>
+</html>

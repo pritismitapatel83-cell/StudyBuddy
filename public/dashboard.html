@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Buddy — Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* Animated hero */
+  .dash-hero {
+    background: linear-gradient(135deg, #1a1208 0%, #2f1f0a 70%, #3d2a10 100%);
+    border-radius: 20px;
+    padding: 2.2rem 2.5rem;
+    margin-bottom: 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; overflow: hidden;
+    box-shadow: 0 8px 40px rgba(26,18,8,.22);
+    animation: fadeUp .6s ease both;
+  }
+  .dash-hero::before {
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(ellipse at 10% 50%, rgba(201,135,58,.28), transparent 55%),
+                radial-gradient(ellipse at 90% 20%, rgba(42,122,114,.18), transparent 48%);
+    animation: heroPulse 5s ease-in-out infinite alternate;
+  }
+  @keyframes heroPulse {
+    from { opacity: .7; }
+    to   { opacity: 1; }
+  }
+
+  /* Animated star particles in hero */
+  .hero-particle {
+    position: absolute; border-radius: 50%;
+    background: rgba(201,135,58,.2); pointer-events: none;
+  }
+  .hero-particle:nth-child(1) { width:60px; height:60px; top:10%; right:20%; animation: pFloat 6s ease-in-out infinite; }
+  .hero-particle:nth-child(2) { width:30px; height:30px; top:70%; right:35%; animation: pFloat 8s ease-in-out infinite 1s; }
+  .hero-particle:nth-child(3) { width:15px; height:15px; top:40%; right:12%; animation: pFloat 5s ease-in-out infinite 2s; }
+  @keyframes pFloat {
+    0%,100% { transform:translateY(0) scale(1); opacity:.4; }
+    50%      { transform:translateY(-12px) scale(1.15); opacity:.8; }
+  }
+
+  .dash-hero-text { position:relative; z-index:1; }
+  .dash-hero-text h1 { color:#fff; margin-bottom:.3rem; }
+  .dash-hero-text p  { color:rgba(255,255,255,.6); font-size:.95rem; }
+  .dash-hero-badges { margin-top:1rem; display:flex; gap:.6rem; flex-wrap:wrap; }
+
+  .dash-hero-avatar {
+    position:relative; z-index:1;
+    width:76px; height:76px; border-radius:50%;
+    background: linear-gradient(135deg,#c9873a,#e8b06b);
+    display:flex; align-items:center; justify-content:center;
+    font-size:2rem; flex-shrink:0;
+    box-shadow: 0 4px 20px rgba(201,135,58,.5);
+    cursor:pointer; text-decoration:none;
+    transition: transform var(--spring), box-shadow var(--transition);
+    animation: avatarPop .7s cubic-bezier(.34,1.56,.64,1) .5s both;
+  }
+  @keyframes avatarPop {
+    from { transform: scale(0) rotate(-45deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  .dash-hero-avatar:hover {
+    transform: scale(1.1) rotate(-5deg);
+    box-shadow: 0 8px 30px rgba(201,135,58,.65);
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.2rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+    box-shadow: var(--shadow);
+    transition: all var(--transition);
+    animation: fadeUp .5s ease both;
+    overflow: hidden; position: relative;
+  }
+  .stat-card::after {
+    content:''; position:absolute; bottom:0; left:0; right:0;
+    height:3px; background: var(--accent, var(--gold));
+    transform: scaleX(0); transform-origin: left;
+    transition: transform .4s ease;
+  }
+  .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .stat-card:hover::after { transform: scaleX(1); }
+  .stat-icon {
+    width:48px; height:48px; border-radius:12px;
+    background: var(--icon-bg, var(--gold-pale));
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.4rem; flex-shrink:0;
+    transition: transform var(--spring);
+  }
+  .stat-card:hover .stat-icon { transform: scale(1.15) rotate(-5deg); }
+  .stat-value { font-family: var(--font-mono); font-size: 1.7rem; font-weight: 700; color: var(--ink); line-height:1; }
+  .stat-label { font-size: .78rem; color: var(--ink3); margin-top:.15rem; }
+
+  /* Feature cards */
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem; margin-bottom: 2rem;
+  }
+  .feat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.4rem;
+    display: flex; flex-direction: column; gap: .7rem;
+    text-decoration: none; color: var(--ink);
+    transition: all var(--transition);
+    box-shadow: var(--shadow);
+    position: relative; overflow: hidden;
+    animation: fadeUp .5s ease both;
+  }
+  .feat-card::before {
+    content:''; position:absolute; top:0; left:0; right:0;
+    height:3px; border-radius:var(--radius) var(--radius) 0 0;
+    background: var(--card-accent, var(--gold));
+    transform: scaleX(0); transform-origin: left;
+    transition: transform .4s cubic-bezier(.34,1.2,.64,1);
+  }
+  .feat-card:hover { transform:translateY(-4px); box-shadow: 0 12px 40px rgba(26,18,8,.15); }
+  .feat-card:hover::before { transform: scaleX(1); }
+  .feat-icon {
+    width:48px; height:48px; border-radius:12px;
+    background: var(--icon-bg, var(--gold-pale));
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.4rem;
+    transition: transform var(--spring);
+  }
+  .feat-card:hover .feat-icon { transform: scale(1.18) rotate(-6deg); }
+  .feat-card h3 { font-size:1.05rem; margin:0; }
+  .feat-card p  { font-size:.83rem; color:var(--ink3); margin:0; }
+  .feat-arrow {
+    font-size:.85rem; color:var(--ink3);
+    margin-top: auto;
+    transition: transform var(--transition), color var(--transition);
+  }
+  .feat-card:hover .feat-arrow { transform: translateX(4px); color: var(--gold); }
+
+  /* Bottom row */
+  .dash-lower { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+
+  /* Progress */
+  .progress-list { display:flex; flex-direction:column; gap:1rem; }
+  .prog-item { animation: slideRight .5s ease both; }
+  .prog-item:nth-child(2) { animation-delay:.1s; }
+  .prog-item:nth-child(3) { animation-delay:.2s; }
+  @keyframes slideRight {
+    from { opacity:0; transform:translateX(-16px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
+  .prog-label { display:flex; justify-content:space-between; font-size:.88rem; font-weight:500; margin-bottom:.35rem; }
+  .prog-pct   { color:var(--ink3); font-size:.82rem; font-family:var(--font-mono); }
+
+  /* Rankings */
+  .rank-list { list-style:none; display:flex; flex-direction:column; gap:.6rem; }
+  .rank-item {
+    display:flex; align-items:center; gap:.9rem;
+    padding:.75rem .9rem; border-radius:10px;
+    background:var(--surface2); border:1px solid var(--border);
+    transition: all var(--transition);
+    animation: fadeUp .4s ease both;
+  }
+  .rank-item:nth-child(2) { animation-delay:.07s; }
+  .rank-item:nth-child(3) { animation-delay:.14s; }
+  .rank-item:nth-child(4) { animation-delay:.21s; }
+  .rank-item:hover { transform: translateX(4px); background: var(--gold-pale); border-color: var(--gold2); }
+  .rank-item.you { background:var(--gold-pale); border-color:var(--gold2); }
+  .rank-num {
+    width:28px; height:28px; border-radius:8px;
+    background:var(--surface); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:.78rem; font-weight:700; color:var(--ink2); flex-shrink:0;
+    font-family:var(--font-mono); transition: transform var(--spring);
+  }
+  .rank-item:hover .rank-num { transform: scale(1.1); }
+  .rank-item:nth-child(1) .rank-num { background:var(--gold); color:#fff; border-color:var(--gold); }
+  .rank-item:nth-child(2) .rank-num { background:#a0a0a0; color:#fff; border-color:#a0a0a0; }
+  .rank-item:nth-child(3) .rank-num { background:#c0723a; color:#fff; border-color:#c0723a; }
+  .rank-name { flex:1; font-size:.9rem; font-weight:500; }
+  .rank-pts   { font-family:var(--font-mono); font-size:.85rem; color:var(--gold); font-weight:700; }
+
+  @media(max-width:780px){
+    .stats-row  { grid-template-columns:1fr 1fr; }
+    .feature-grid { grid-template-columns:1fr 1fr; }
+    .dash-lower { grid-template-columns:1fr; }
+  }
+  @media(max-width:480px){
+    .stats-row    { grid-template-columns:1fr; }
+    .feature-grid { grid-template-columns:1fr; }
+    .dash-hero    { flex-direction:column; align-items:flex-start; gap:1rem; }
+    .dash-hero-avatar { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="logo" href="dashboard.html"><div class="logo-icon">📚</div>Study Buddy</a>
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">☰</button>
+  <nav class="main-nav">
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="notes.html">Notes</a>
+    <a href="planner.html">Planner</a>
+    <a href="test.html">Tests</a>
+    <a href="connection.html">Connect</a>
+    <a href="profile.html">Profile</a>
+  </nav>
+</header>
+
+<div class="page-wrap">
+
+  <!-- Hero -->
+  <div class="dash-hero">
+    <div class="hero-particle"></div>
+    <div class="hero-particle"></div>
+    <div class="hero-particle"></div>
+    <div class="dash-hero-text">
+      <h1 id="welcomeMsg">Welcome back 👋</h1>
+      <p id="userMeta">BCA · Semester IV</p>
+      <div class="dash-hero-badges">
+        <span class="badge badge-gold" id="subjectBadge">DBMS</span>
+        <span class="badge" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);">Active learner</span>
+      </div>
+    </div>
+    <a href="profile.html" class="dash-hero-avatar" id="avatarLink">🎓</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card fade-up" style="--accent:#c9873a;">
+      <div class="stat-icon" style="--icon-bg:#fdf0df;">📝</div>
+      <div>
+        <div class="stat-value count-up" data-target="12" id="statNotes">0</div>
+        <div class="stat-label">Notes saved</div>
+      </div>
+    </div>
+    <div class="stat-card fade-up" style="--accent:#2a7a72; animation-delay:.08s;">
+      <div class="stat-icon" style="--icon-bg:#e3f4f2;">🎯</div>
+      <div>
+        <div class="stat-value count-up" data-target="5" id="statTasks">0</div>
+        <div class="stat-label">Goals today</div>
+      </div>
+    </div>
+    <div class="stat-card fade-up" style="--accent:#7c4dbd; animation-delay:.16s;">
+      <div class="stat-icon" style="--icon-bg:#f0eaff;">🏆</div>
+      <div>
+        <div class="stat-value count-up" data-target="350" id="statPts">0</div>
+        <div class="stat-label">Points earned</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature cards -->
+  <div class="section-title fade-up">Quick Access</div>
+  <div class="feature-grid">
+    <a href="notes.html" class="feat-card" style="--card-accent:#c9873a;--icon-bg:#fdf0df; animation-delay:.05s;">
+      <div class="feat-icon">📝</div>
+      <h3>Notes</h3>
+      <p>Organize & share subject-wise notes</p>
+      <span class="feat-arrow">→</span>
+    </a>
+    <a href="planner.html" class="feat-card" style="--card-accent:#2a7a72;--icon-bg:#e3f4f2; animation-delay:.12s;">
+      <div class="feat-icon">📅</div>
+      <h3>Planner</h3>
+      <p>Schedule daily study goals</p>
+      <span class="feat-arrow">→</span>
+    </a>
+    <a href="test.html" class="feat-card" style="--card-accent:#7c4dbd;--icon-bg:#f0eaff; animation-delay:.19s;">
+      <div class="feat-icon">🧪</div>
+      <h3>Tests</h3>
+      <p>Create and take practice quizzes</p>
+      <span class="feat-arrow">→</span>
+    </a>
+  </div>
+
+  <!-- Lower section -->
+  <div class="dash-lower">
+    <div class="card fade-up">
+      <div class="section-title" style="font-size:1.1rem;">📈 Study Progress</div>
+      <div class="progress-list" id="progressList">
+        <div class="skeleton" style="height:50px;"></div>
+        <div class="skeleton" style="height:50px;margin-top:.5rem;"></div>
+        <div class="skeleton" style="height:50px;margin-top:.5rem;"></div>
+      </div>
+    </div>
+    <div class="card fade-up" style="animation-delay:.08s;">
+      <div class="section-title" style="font-size:1.1rem;">📊 Weekly Ranking</div>
+      <ol class="rank-list" id="rankList">
+        <div class="skeleton" style="height:44px;border-radius:10px;"></div>
+        <div class="skeleton" style="height:44px;border-radius:10px;margin-top:.5rem;"></div>
+        <div class="skeleton" style="height:44px;border-radius:10px;margin-top:.5rem;"></div>
+      </ol>
+      <p style="font-size:.78rem;color:var(--ink3);margin-top:.9rem;">Based on cumulative test scores this week</p>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">© 2026 Study Buddy · Your learning companion 😊</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:5500';
+
+function showToast(msg, type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+const user = JSON.parse(localStorage.getItem('user')||'{}');
+if (user.username) {
+  document.getElementById('welcomeMsg').textContent = `Welcome back, ${user.username} 👋`;
+  if (user.subject) document.getElementById('subjectBadge').textContent = user.subject;
+}
+
+// Animated counter
+function animateCount(el, target, duration=1200) {
+  let start = 0, startTime = null;
+  function step(ts) {
+    if (!startTime) startTime = ts;
+    const progress = Math.min((ts - startTime) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(ease * target);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+setTimeout(() => {
+  document.querySelectorAll('.count-up').forEach(el => {
+    animateCount(el, +el.dataset.target);
+  });
+}, 400);
+
+async function loadProgress() {
+  try {
+    const r = await fetch(`${API}/api/progress`);
+    const data = await r.json();
+    renderProgress(data);
+  } catch {
+    renderProgress([
+      {subject:'DBMS', percent:70},
+      {subject:'Computer Networks', percent:60},
+      {subject:'Software Engineering', percent:80}
+    ]);
+  }
+}
+
+function renderProgress(data) {
+  document.getElementById('progressList').innerHTML = data.map((d,i) => `
+    <div class="prog-item" style="animation-delay:${i*.1}s;">
+      <div class="prog-label">
+        <span>${d.subject}</span>
+        <span class="prog-pct">${d.percent}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:0%" data-width="${d.percent}%"></div>
+      </div>
+    </div>`).join('');
+  // Animate bars in after render
+  setTimeout(() => {
+    document.querySelectorAll('.progress-fill[data-width]').forEach(el => {
+      el.style.width = el.dataset.width;
+    });
+  }, 100);
+}
+
+async function loadRankings() {
+  try {
+    const r = await fetch(`${API}/api/ranking`);
+    const data = await r.json();
+    renderRankings(data);
+  } catch {
+    renderRankings([
+      {name:'Amit Kumar',points:420},
+      {name:'Sneha Patel',points:395},
+      {name:'Rahul Das',points:370},
+      {name:'You',points:350,isCurrentUser:true}
+    ]);
+  }
+}
+
+function renderRankings(data) {
+  document.getElementById('rankList').innerHTML = data.map((d,i) => `
+    <li class="rank-item ${d.isCurrentUser?'you':''}" style="animation-delay:${i*.07}s;">
+      <div class="rank-num">${i+1}</div>
+      <div class="rank-name">${d.name}${d.isCurrentUser?' <span style="font-size:.72rem;color:var(--gold);">(you)</span>':''}</div>
+      <div class="rank-pts">${d.points} pts</div>
+    </li>`).join('');
+}
+
+loadProgress();
+loadRankings();
+</script>
+</body>
+</html>

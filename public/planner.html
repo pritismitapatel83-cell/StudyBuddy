@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Buddy — Planner</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  .page-wrap { flex: 1; }
+  .site-footer { margin-top: auto; }
+
+  .planner-layout { display:grid; grid-template-columns:360px 1fr; gap:1.5rem; align-items:start; }
+
+  /* Task form card */
+  .add-card { position:sticky; top:80px; }
+
+  /* Calendar-style day group */
+  .day-group { margin-bottom:1.5rem; }
+  .day-label {
+    display:flex; align-items:center; gap:.7rem;
+    font-size:.83rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--ink3); margin-bottom:.6rem;
+  }
+  .day-label .day-dot {
+    width:8px; height:8px; border-radius:50%; background:var(--gold); flex-shrink:0;
+  }
+  .day-label .day-dot.today { background:var(--teal); box-shadow:0 0 0 3px var(--teal-pale); }
+  .day-label span.today-tag {
+    background:var(--teal-pale); color:var(--teal);
+    font-size:.72rem; padding:.1rem .5rem; border-radius:20px; font-weight:600;
+  }
+
+  /* Task item */
+  .task-item {
+    display:flex; align-items:center; gap:.8rem;
+    padding:.8rem 1rem; background:var(--surface);
+    border:1px solid var(--border); border-radius:10px;
+    margin-bottom:.5rem; transition:all var(--transition);
+  }
+  .task-item.done { opacity:.55; }
+  .task-item.done .task-name { text-decoration:line-through; color:var(--ink3); }
+
+  .task-check {
+    width:20px; height:20px; border-radius:6px;
+    border:2px solid var(--border); cursor:pointer; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    transition:all var(--transition); background:var(--surface);
+  }
+  .task-check.checked { background:var(--teal); border-color:var(--teal); color:#fff; font-size:.7rem; }
+  .task-check:hover { border-color:var(--teal); }
+
+  .task-info { flex:1; min-width:0; }
+  .task-name { font-size:.92rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .task-sub  { font-size:.78rem; color:var(--ink3); margin-top:.1rem; }
+
+  .task-del {
+    background:none; border:none; cursor:pointer; color:var(--ink3);
+    font-size:.9rem; padding:.3rem; border-radius:6px;
+    transition:all var(--transition); opacity:0;
+  }
+  .task-item:hover .task-del { opacity:1; }
+  .task-del:hover { background:var(--red-pale); color:var(--red); }
+
+  .stats-row {
+    display:flex; gap:.8rem; margin-bottom:1.8rem; flex-wrap:wrap;
+  }
+  .stat-chip {
+    flex:1; min-width:100px; background:var(--surface);
+    border:1px solid var(--border); border-radius:10px;
+    padding:.8rem 1rem; text-align:center;
+  }
+  .stat-chip .sc-val { font-family:var(--font-head); font-size:1.6rem; font-weight:700; color:var(--ink); }
+  .stat-chip .sc-lbl { font-size:.75rem; color:var(--ink3); margin-top:.15rem; }
+
+  .empty-state { text-align:center; padding:3rem 1rem; color:var(--ink3); }
+  .empty-state .e-icon { font-size:2.5rem; margin-bottom:.8rem; }
+
+  @media(max-width:760px){ .planner-layout { grid-template-columns:1fr; } .add-card { position:static; } }
+
+  /* ===== ENHANCED ANIMATIONS ===== */
+  .card, .feat-card, .stat-chip, .note-row, .task-item, .conn-card, .quiz-card {
+    animation: fadeUp .5s cubic-bezier(.4,0,.2,1) both;
+  }
+  .task-item { transition: all .22s cubic-bezier(.4,0,.2,1); }
+  .task-item:hover {
+    transform: translateX(4px);
+    border-color: rgba(201,135,58,.3);
+    box-shadow: 0 4px 16px rgba(26,18,8,.1);
+  }
+  .task-check { transition: all .3s cubic-bezier(.34,1.56,.64,1) !important; }
+  .task-check.checked {
+    transform: scale(1.15);
+    animation: checkBounce .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes checkBounce {
+    0%  { transform: scale(0); }
+    60% { transform: scale(1.3); }
+    100%{ transform: scale(1); }
+  }
+  .stat-chip { transition: all .22s ease; cursor: default; }
+  .stat-chip:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(26,18,8,.12);
+    border-color: rgba(201,135,58,.25);
+  }
+  .stat-chip .sc-val { transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+  .stat-chip:hover .sc-val { transform: scale(1.1); }
+  .section-title::after {
+    background: linear-gradient(90deg, var(--gold), var(--border), transparent);
+    animation: titleLine 2s ease both;
+  }
+  @keyframes titleLine {
+    from { transform: scaleX(0); transform-origin: left; }
+    to   { transform: scaleX(1); transform-origin: left; }
+  }
+  .upload-zone { transition: all .25s ease; }
+  .upload-zone:hover {
+    transform: scale(1.01);
+    box-shadow: 0 4px 20px rgba(201,135,58,.15);
+  }
+  tbody tr {
+    animation: fadeUp .35s ease both;
+    transition: background .2s ease, transform .2s ease !important;
+  }
+  tbody tr:hover { transform: translateX(2px); }
+  .badge { transition: all .2s cubic-bezier(.34,1.2,.64,1); }
+  .badge:hover { transform: scale(1.08) translateY(-1px); }
+  .form-group { position: relative; }
+  .btn { overflow: hidden; position: relative; }
+  .btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.25) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform .5s ease;
+  }
+  .btn:hover::after { transform: translateX(100%); }
+  .profile-avatar, .avatar-lg {
+    transition: transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease !important;
+  }
+  .profile-avatar:hover, .avatar-lg:hover {
+    transform: scale(1.08) rotate(-3deg) !important;
+    box-shadow: 0 8px 32px rgba(201,135,58,.5) !important;
+  }
+  .conn-card, .peer-card, .req-card { transition: all .22s ease; }
+  .conn-card:hover, .peer-card:hover, .req-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 32px rgba(26,18,8,.14);
+    border-color: rgba(201,135,58,.25);
+  }
+  .opt-item, .opt-label { transition: all .2s cubic-bezier(.34,1.2,.64,1) !important; }
+  .opt-item:hover, .opt-label:hover { transform: translateX(4px) !important; }
+  .progress-fill {
+    background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold3));
+    background-size: 200% 100%;
+    animation: shimmerBar 2.5s ease infinite !important;
+  }
+  @keyframes shimmerBar {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  .modal { animation: modalIn .35s cubic-bezier(.34,1.56,.64,1) both !important; }
+  .rank-list li:nth-child(1) { animation-delay: .0s; }
+  .rank-list li:nth-child(2) { animation-delay: .06s; }
+  .rank-list li:nth-child(3) { animation-delay: .12s; }
+  .rank-list li:nth-child(4) { animation-delay: .18s; }
+  /* ===== END ENHANCED ANIMATIONS ===== */
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="logo" href="dashboard.html"><div class="logo-icon">📚</div> Study Buddy</a>
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">☰</button>
+  <nav class="main-nav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="notes.html">Notes</a>
+    <a href="planner.html" class="active">Planner</a>
+    <a href="test.html">Tests</a>
+    <a href="connection.html">Connect</a>
+    <a href="profile.html">Profile</a>
+  </nav>
+</header>
+
+<div class="page-wrap">
+  <div class="section-title fade-up">📅 Study Planner</div>
+
+  <!-- Stats -->
+  <div class="stats-row fade-up" id="statsRow">
+    <div class="stat-chip"><div class="sc-val" id="statTotal">0</div><div class="sc-lbl">Total Tasks</div></div>
+    <div class="stat-chip"><div class="sc-val" id="statDone">0</div><div class="sc-lbl">Completed</div></div>
+    <div class="stat-chip"><div class="sc-val" id="statPending">0</div><div class="sc-lbl">Pending</div></div>
+  </div>
+
+  <div class="planner-layout">
+
+    <!-- Add form -->
+    <div class="add-card fade-up">
+      <div class="card">
+        <h3 style="margin-bottom:1.2rem;">Add Study Task</h3>
+        <div class="form-group">
+          <label>Task</label>
+          <input type="text" id="taskInput" placeholder="e.g. DBMS Revision – Unit 3">
+        </div>
+        <div class="form-group">
+          <label>Due Date</label>
+          <input type="date" id="dateInput">
+        </div>
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="priorityInput">
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="addTask()">+ Add Task</button>
+      </div>
+    </div>
+
+    <!-- Task list -->
+    <div class="fade-up">
+      <div id="taskList">
+        <div class="empty-state" id="emptyState">
+          <div class="e-icon">📭</div>
+          <p>No tasks yet. Add your first study task!</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="site-footer">© 2026 Study Buddy · Your learning companion 😊</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:5500';
+let tasks = [];
+
+function showToast(msg, type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// Set today as default date
+document.getElementById('dateInput').valueAsDate = new Date();
+
+function updateStats() {
+  const total = tasks.length;
+  const done  = tasks.filter(t => t.is_completed == 1 || t.done).length;
+  document.getElementById('statTotal').textContent   = total;
+  document.getElementById('statDone').textContent    = done;
+  document.getElementById('statPending').textContent = total - done;
+}
+
+function groupByDate(tasks) {
+  const groups = {};
+  tasks.forEach(t => {
+    const d = t.due_date || t.date || 'No date';
+    if (!groups[d]) groups[d] = [];
+    groups[d].push(t);
+  });
+  return groups;
+}
+
+function isToday(dateStr) {
+  return dateStr === new Date().toISOString().slice(0,10);
+}
+
+function priorityColor(p) {
+  return { high:'var(--red)', normal:'var(--gold)', low:'var(--ink3)' }[p] || 'var(--gold)';
+}
+
+function isDone(t) {
+  return t.is_completed == 1 || t.done === true;
+}
+
+function renderTasks() {
+  updateStats();
+  const listEl = document.getElementById('taskList');
+  const empty  = document.getElementById('emptyState');
+  if (!tasks.length) {
+    listEl.innerHTML = '';
+    listEl.appendChild(empty);
+    empty.style.display = 'block'; return;
+  }
+  empty.style.display = 'none';
+
+  const sorted = [...tasks].sort((a,b) => ((a.due_date||a.date||'')).localeCompare((b.due_date||b.date||'')));
+  const groups = groupByDate(sorted);
+
+  listEl.innerHTML = Object.entries(groups).map(([date, items]) => `
+    <div class="day-group">
+      <div class="day-label">
+        <div class="day-dot ${isToday(date)?'today':''}"></div>
+        ${date === 'No date' ? 'No Date' : new Date(date+'T00:00').toLocaleDateString('en-IN',{weekday:'long',month:'short',day:'numeric'})}
+        ${isToday(date) ? '<span class="today-tag">Today</span>' : ''}
+      </div>
+      ${items.map(t => `
+        <div class="task-item ${isDone(t)?'done':''}" id="task-${t.id}">
+          <div class="task-check ${isDone(t)?'checked':''}" onclick="toggleTask('${t.id}')">${isDone(t)?'✓':''}</div>
+          <div class="task-info">
+            <div class="task-name">${t.task_title || t.text}</div>
+            <div class="task-sub">
+              <span style="color:${priorityColor(t.priority||'normal')};font-weight:600;font-size:.72rem;text-transform:uppercase;">${t.priority||'normal'}</span>
+            </div>
+          </div>
+          <button class="task-del" onclick="deleteTask('${t.id}')">✕</button>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+async function loadTasks() {
+  try {
+    const r = await fetch(`${API}/api/planner`);
+    tasks = await r.json();
+  } catch {
+    tasks = JSON.parse(localStorage.getItem('sb_tasks')||'[]');
+  }
+  renderTasks();
+}
+
+function saveTasks() {
+  localStorage.setItem('sb_tasks', JSON.stringify(tasks));
+}
+
+async function addTask() {
+  const text     = document.getElementById('taskInput').value.trim();
+  const date     = document.getElementById('dateInput').value;
+  const priority = document.getElementById('priorityInput').value;
+  if (!text) return showToast('Please enter a task', 'error');
+  if (!date) return showToast('Please select a date', 'error');
+
+  try {
+    const r = await fetch(`${API}/api/planner`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ task: text, dueDate: date, priority })
+    });
+    const saved = await r.json();
+    tasks.push(saved.task || saved);
+  } catch {
+    tasks.push({ id: Date.now().toString(), task_title: text, due_date: date, priority, is_completed: 0 });
+    saveTasks();
+  }
+  document.getElementById('taskInput').value = '';
+  showToast('Task added!', 'success');
+  renderTasks();
+}
+
+async function toggleTask(id) {
+  const t = tasks.find(t => String(t.id) === String(id));
+  if (!t) return;
+  try {
+    const r = await fetch(`${API}/api/planner/${id}`, { method:'PATCH' });
+    const data = await r.json();
+    const idx = tasks.findIndex(t => String(t.id) === String(id));
+    if (idx !== -1) tasks[idx] = data.task || tasks[idx];
+  } catch {
+    t.is_completed = t.is_completed ? 0 : 1;
+    saveTasks();
+  }
+  renderTasks();
+}
+
+async function deleteTask(id) {
+  try { await fetch(`${API}/api/planner/${id}`, { method:'DELETE' }); }
+  catch {}
+  tasks = tasks.filter(t => String(t.id) !== String(id));
+  saveTasks();
+  showToast('Task removed');
+  renderTasks();
+}
+
+// Enter key
+document.getElementById('taskInput').addEventListener('keydown', e => { if(e.key==='Enter') addTask(); });
+
+loadTasks();
+</script>
+
+<script>
+// ===== GLOBAL ANIMATION ENHANCEMENTS =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+document.querySelectorAll('.card, .stat-chip').forEach((el, i) => {
+  if (!el.style.animationDelay) {
+    el.style.animationDelay = (i * 0.05) + 's';
+    el.style.animation = 'fadeUp .5s cubic-bezier(.4,0,.2,1) both';
+    el.style.animationDelay = (i * 0.05) + 's';
+  }
+});
+
+setTimeout(() => {
+  document.querySelectorAll('.progress-fill[data-width]').forEach(el => {
+    el.style.width = el.dataset.width;
+  });
+}, 200);
+
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    const r = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    r.style.cssText = `
+      position:absolute;width:6px;height:6px;border-radius:50%;
+      background:rgba(255,255,255,.5);
+      left:${e.clientX-rect.left-3}px;top:${e.clientY-rect.top-3}px;
+      animation:ripple .5s ease forwards;pointer-events:none;
+    `;
+    if (!document.querySelector('#rippleStyle')) {
+      const s = document.createElement('style');
+      s.id = 'rippleStyle';
+      s.textContent = '@keyframes ripple{to{width:80px;height:80px;margin:-37px;opacity:0;}}';
+      document.head.appendChild(s);
+    }
+    this.style.overflow='hidden'; this.style.position='relative';
+    this.appendChild(r);
+    setTimeout(() => r.remove(), 500);
+  });
+});
+// ===== END GLOBAL ENHANCEMENTS =====
+</script>
+
+</body>
+</html>

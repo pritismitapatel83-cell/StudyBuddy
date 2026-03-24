@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Buddy — Login</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+
+  .auth-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 2rem 1rem;
+    position: relative; overflow: hidden;
+  }
+
+  /* Animated background orbs */
+  .bg-orb {
+    position: fixed; border-radius: 50%; filter: blur(60px);
+    pointer-events: none; will-change: transform;
+  }
+  .bg-orb-1 {
+    width: 400px; height: 400px; top: -100px; left: -100px;
+    background: radial-gradient(circle, rgba(201,135,58,.12), transparent);
+    animation: orbFloat1 8s ease-in-out infinite;
+  }
+  .bg-orb-2 {
+    width: 300px; height: 300px; bottom: -80px; right: -80px;
+    background: radial-gradient(circle, rgba(42,122,114,.1), transparent);
+    animation: orbFloat2 10s ease-in-out infinite;
+  }
+  @keyframes orbFloat1 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33%      { transform: translate(30px,-20px) scale(1.05); }
+    66%      { transform: translate(-20px,30px) scale(.95); }
+  }
+  @keyframes orbFloat2 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50%      { transform: translate(-25px,-15px) scale(1.1); }
+  }
+
+  .auth-shell {
+    display: grid; grid-template-columns: 1fr 1fr;
+    max-width: 900px; width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px; overflow: hidden;
+    box-shadow: 0 24px 80px rgba(26,18,8,.18);
+    animation: authShellIn .7s cubic-bezier(.34,1.2,.64,1) both;
+    position: relative; z-index: 1;
+  }
+  @keyframes authShellIn {
+    from { opacity: 0; transform: scale(.92) translateY(30px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* Hero panel */
+  .auth-hero {
+    background: linear-gradient(160deg, #1a1208 0%, #2f1f0a 60%, #3d2a10 100%);
+    padding: 3rem 2.5rem;
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .auth-hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(201,135,58,.3), transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(42,122,114,.2), transparent 50%);
+    animation: heroGlow 6s ease-in-out infinite alternate;
+  }
+  @keyframes heroGlow {
+    from { opacity: .7; }
+    to   { opacity: 1; }
+  }
+
+  /* Floating dots */
+  .hero-dot {
+    position: absolute; border-radius: 50%;
+    background: rgba(201,135,58,.15);
+    pointer-events: none;
+  }
+  .hero-dot:nth-child(1) { width:80px; height:80px; top:15%; right:10%; animation: floatDot 7s ease-in-out infinite; }
+  .hero-dot:nth-child(2) { width:40px; height:40px; top:60%; right:25%; animation: floatDot 5s ease-in-out infinite 1s; }
+  .hero-dot:nth-child(3) { width:20px; height:20px; top:80%; right:8%;  animation: floatDot 9s ease-in-out infinite .5s; }
+  @keyframes floatDot {
+    0%,100% { transform: translateY(0) scale(1); opacity: .5; }
+    50%      { transform: translateY(-14px) scale(1.1); opacity: .9; }
+  }
+
+  .auth-hero-content { position: relative; z-index: 1; }
+  .hero-logo {
+    display: flex; align-items: center; gap: .7rem; margin-bottom: 2.5rem;
+    animation: fadeUp .6s ease .2s both;
+  }
+  .hero-logo-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg,#c9873a,#e8b06b);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    animation: floatUp 4s ease-in-out infinite;
+    box-shadow: 0 4px 16px rgba(201,135,58,.4);
+  }
+  @keyframes floatUp {
+    0%,100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-5px) rotate(-3deg); }
+  }
+  .hero-logo span { font-family: var(--font-head); font-size: 1.4rem; font-weight: 900; color: #fff; }
+  .hero-tagline {
+    font-family: var(--font-head); font-size: 2rem; font-weight: 900;
+    color: #fff; line-height: 1.25; margin-bottom: 1rem;
+    animation: fadeUp .6s ease .35s both;
+  }
+  .hero-tagline em { color: var(--gold2); font-style: normal; }
+  .hero-sub { font-size: .92rem; color: rgba(255,255,255,.6); line-height: 1.65; animation: fadeUp .6s ease .45s both; }
+
+  .hero-features { margin-top: 2.5rem; display: flex; flex-direction: column; gap: .8rem; position: relative; z-index: 1; }
+  .hero-feat {
+    display: flex; align-items: center; gap: .8rem;
+    font-size: .85rem; color: rgba(255,255,255,.75);
+    animation: slideRight .5s ease both;
+    transition: transform .2s ease;
+  }
+  .hero-feat:nth-child(1) { animation-delay: .5s; }
+  .hero-feat:nth-child(2) { animation-delay: .6s; }
+  .hero-feat:nth-child(3) { animation-delay: .7s; }
+  .hero-feat:nth-child(4) { animation-delay: .8s; }
+  .hero-feat:hover { transform: translateX(4px); color: rgba(255,255,255,.95); }
+  @keyframes slideRight {
+    from { opacity:0; transform:translateX(-16px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
+  .hero-feat-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: rgba(255,255,255,.1); display: flex;
+    align-items: center; justify-content: center; font-size: .95rem; flex-shrink: 0;
+    transition: background .2s, transform .2s;
+  }
+  .hero-feat:hover .hero-feat-icon { background: rgba(201,135,58,.3); transform: scale(1.1); }
+
+  /* Form panel */
+  .auth-form-panel {
+    padding: 2.8rem 2.5rem;
+    display: flex; flex-direction: column; justify-content: center;
+    animation: fadeUp .6s ease .3s both;
+  }
+
+  .tab-switcher {
+    display: flex; background: var(--surface2);
+    border-radius: 10px; padding: 4px; margin-bottom: 2rem;
+    position: relative;
+  }
+  .tab-indicator {
+    position: absolute; top: 4px; bottom: 4px;
+    width: calc(50% - 4px);
+    background: var(--surface);
+    border-radius: 7px;
+    box-shadow: 0 1px 6px rgba(26,18,8,.1);
+    transition: transform .3s cubic-bezier(.34,1.2,.64,1);
+  }
+  .tab-btn {
+    flex: 1; padding: .55rem; border: none; background: none; cursor: pointer;
+    border-radius: 7px; font-family: var(--font-body);
+    font-size: .88rem; font-weight: 600; color: var(--ink3);
+    transition: color var(--transition); position: relative; z-index: 1;
+  }
+  .tab-btn.active { color: var(--gold); }
+
+  .auth-form { display: none; }
+  .auth-form.visible { display: block; animation: formSlideIn .35s cubic-bezier(.4,0,.2,1) both; }
+  @keyframes formSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .auth-form h2 { font-family: var(--font-head); font-size: 1.6rem; font-weight: 700; margin-bottom: .3rem; }
+  .auth-form .form-sub { font-size: .85rem; color: var(--ink3); margin-bottom: 1.6rem; }
+
+  .btn-full { width: 100%; justify-content: center; padding: .8rem; font-size: .95rem; }
+
+  .divider { display: flex; align-items: center; gap: .8rem; margin: 1.2rem 0; color: var(--ink3); font-size: .8rem; }
+  .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* Input label float animation */
+  .form-group { position: relative; }
+
+  @media (max-width: 680px) {
+    .auth-shell { grid-template-columns: 1fr; }
+    .auth-hero { display: none; }
+    .auth-form-panel { padding: 2rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+
+<div class="auth-wrap">
+  <div class="auth-shell">
+    <!-- Hero panel -->
+    <div class="auth-hero">
+      <div class="hero-dot"></div>
+      <div class="hero-dot"></div>
+      <div class="hero-dot"></div>
+      <div class="auth-hero-content">
+        <div class="hero-logo">
+          <div class="hero-logo-icon">📚</div>
+          <span>Study Buddy</span>
+        </div>
+        <div class="hero-tagline">Learn better,<br><em>together.</em></div>
+        <p class="hero-sub">Your academic companion for notes, planning, tests, and connecting with fellow students.</p>
+        <div class="hero-features">
+          <div class="hero-feat"><div class="hero-feat-icon">📝</div> Organize subject-wise notes</div>
+          <div class="hero-feat"><div class="hero-feat-icon">📅</div> Plan daily study goals</div>
+          <div class="hero-feat"><div class="hero-feat-icon">🧪</div> Take & create quizzes</div>
+          <div class="hero-feat"><div class="hero-feat-icon">🤝</div> Connect with study partners</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form panel -->
+    <div class="auth-form-panel">
+      <div class="tab-switcher">
+        <div class="tab-indicator" id="tabIndicator"></div>
+        <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+        <button class="tab-btn" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- Login -->
+      <div class="auth-form visible" id="loginForm">
+        <h2>Welcome back</h2>
+        <p class="form-sub">Sign in to your Study Buddy account</p>
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="loginUsername" placeholder="Enter your username">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter your password">
+        </div>
+        <div class="form-group">
+          <label>Subject (optional)</label>
+          <select id="loginSubject">
+            <option value="">Choose your subject</option>
+            <option value="DBMS">DBMS</option>
+            <option value="Operating System">Operating System</option>
+            <option value="Computer Networking">Computer Networking</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="English">English</option>
+            <option value="Science">Science</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full pulse-glow" onclick="doLogin()" id="loginBtn">Sign In →</button>
+      </div>
+
+      <!-- Register -->
+      <div class="auth-form" id="registerForm">
+        <h2>Create account</h2>
+        <p class="form-sub">Join thousands of students learning together</p>
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="regUsername" placeholder="Choose a username">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="regPassword" placeholder="Create a strong password">
+        </div>
+        <div class="form-group">
+          <label>Primary Subject</label>
+          <select id="regSubject">
+            <option value="">Select subject</option>
+            <option value="DBMS">DBMS</option>
+            <option value="Operating System">Operating System</option>
+            <option value="Computer Networking">Computer Networking</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="English">English</option>
+            <option value="Science">Science</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="doRegister()" id="registerBtn">Create Account →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';  // Empty because frontend and backend run on same port 3000
+
+function switchTab(tab) {
+  const btns = document.querySelectorAll('.tab-btn');
+  btns.forEach((b,i) => b.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register')));
+  document.getElementById('loginForm').classList.toggle('visible', tab==='login');
+  document.getElementById('registerForm').classList.toggle('visible', tab==='register');
+  // Move indicator
+  const indicator = document.getElementById('tabIndicator');
+  indicator.style.transform = tab === 'login' ? 'translateX(0)' : 'translateX(calc(100% + 4px))';
+}
+
+// Init indicator position
+document.getElementById('tabIndicator').style.transform = 'translateX(0)';
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+async function doLogin() {
+  const btn = document.getElementById('loginBtn');
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const subject  = document.getElementById('loginSubject').value;
+  if (!username || !password) return showToast('Please fill in all fields', 'error');
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username, password, subject })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      localStorage.setItem('user', JSON.stringify(d.user || { username, subject }));
+      showToast('Welcome back! Redirecting…', 'success');
+      setTimeout(() => location.href = 'dashboard.html', 900);
+    } else { showToast(d.message || 'Login failed', 'error'); }
+  } catch { showToast('Cannot connect to server', 'error'); }
+  btn.textContent = 'Sign In →'; btn.disabled = false;
+}
+
+async function doRegister() {
+  const btn = document.getElementById('registerBtn');
+  const username = document.getElementById('regUsername').value.trim();
+  const email    = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const subject  = document.getElementById('regSubject').value;
+  if (!username || !email || !password) return showToast('Please fill all fields', 'error');
+  btn.textContent = 'Creating…'; btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/register`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username, email, password, subject })
+    });
+    const d = await r.json();
+    if (r.ok) { showToast('Account created! Please sign in.', 'success'); switchTab('login'); }
+    else { showToast(d.message || 'Registration failed', 'error'); }
+  } catch { showToast('Cannot connect to server', 'error'); }
+  btn.textContent = 'Create Account →'; btn.disabled = false;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('loginForm').classList.contains('visible')) doLogin();
+    else doRegister();
+  }
+});
+
+// Cursor glow effect
+const glow = document.createElement('div');
+glow.className = 'cursor-glow';
+glow.style.cssText = 'position:fixed;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(201,135,58,.06),transparent 70%);pointer-events:none;z-index:0;transform:translate(-50%,-50%);transition:left .15s,top .15s;';
+document.body.appendChild(glow);
+document.addEventListener('mousemove', e => {
+  glow.style.left = e.clientX + 'px';
+  glow.style.top  = e.clientY + 'px';
+});
+</script>
+</body>
+</html>

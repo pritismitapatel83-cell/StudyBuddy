@@ -1,0 +1,23 @@
+[
+  {
+    "rank": 1,
+    "name": "Amit Kumar",
+    "points": 420
+  },
+  {
+    "rank": 2,
+    "name": "Sneha Patel",
+    "points": 395
+  },
+  {
+    "rank": 3,
+    "name": "Rahul Das",
+    "points": 370
+  },
+  {
+    "rank": 4,
+    "name": "You",
+    "points": 350,
+    "isCurrentUser": true
+  }
+]

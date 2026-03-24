@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Buddy — Profile</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  .page-wrap { flex: 1; }
+  .site-footer { margin-top: auto; }
+
+  .profile-layout { display:grid; grid-template-columns:320px 1fr; gap:1.5rem; align-items:start; }
+
+  /* Profile card */
+  .profile-card { position:sticky; top:80px; }
+  .profile-hero {
+    background:linear-gradient(160deg,#1a1208,#2f1f0a);
+    border-radius:var(--radius) var(--radius) 0 0;
+    padding:2.5rem 1.5rem 1.5rem;
+    text-align:center; position:relative; overflow:hidden;
+  }
+  .profile-hero::before {
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse at 50% 100%,rgba(201,135,58,.3),transparent 60%);
+  }
+  .avatar-wrap {
+    position:relative; z-index:1;
+    width:80px; height:80px; margin:0 auto .9rem;
+  }
+  .avatar {
+    width:80px; height:80px; border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),var(--gold2));
+    display:flex; align-items:center; justify-content:center;
+    font-size:2rem; border:3px solid rgba(255,255,255,.3);
+    overflow:hidden; cursor:pointer;
+  }
+  .avatar img { width:100%; height:100%; object-fit:cover; }
+  .avatar-edit {
+    position:absolute; bottom:0; right:0;
+    width:24px; height:24px; border-radius:50%;
+    background:var(--gold); color:#fff; font-size:.65rem;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; border:2px solid var(--surface);
+  }
+  .profile-hero h2 { color:#fff; position:relative; z-index:1; font-size:1.2rem; }
+  .profile-hero p  { color:rgba(255,255,255,.6); font-size:.82rem; position:relative; z-index:1; margin-top:.25rem; }
+  .profile-body { border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); padding:1.3rem; background:var(--surface); }
+
+  .pts-badge {
+    display:flex; align-items:center; gap:.4rem; justify-content:center;
+    margin-top:.6rem; position:relative; z-index:1;
+  }
+  .pts-badge span {
+    background:var(--gold-pale); color:var(--gold);
+    font-family:var(--font-mono); font-size:.8rem; font-weight:700;
+    padding:.25rem .65rem; border-radius:20px;
+  }
+
+  .info-row { display:flex; justify-content:space-between; align-items:center; padding:.6rem 0; border-bottom:1px solid var(--border); }
+  .info-row:last-child { border-bottom:none; }
+  .info-label { font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink3); }
+  .info-val   { font-size:.9rem; color:var(--ink); font-weight:500; }
+
+  /* Edit form */
+  .edit-form { display:none; }
+  .edit-form.open { display:block; }
+
+  /* Subject list */
+  .subj-chips { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .subj-chip {
+    padding:.35rem .8rem; border-radius:20px;
+    background:var(--gold-pale); color:var(--gold);
+    font-size:.8rem; font-weight:600;
+    cursor:pointer; border:1.5px solid transparent;
+    transition:all var(--transition);
+  }
+  .subj-chip:hover, .subj-chip.selected { border-color:var(--gold); background:var(--gold); color:#fff; }
+
+  /* Activity tiles */
+  .activity-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:.9rem; margin-top:1rem; }
+  .activity-tile {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:1rem; text-align:center;
+  }
+  .activity-tile .at-val { font-family:var(--font-head); font-size:1.8rem; font-weight:900; color:var(--ink); }
+  .activity-tile .at-lbl { font-size:.73rem; color:var(--ink3); margin-top:.2rem; }
+
+  @media(max-width:760px){ .profile-layout { grid-template-columns:1fr; } .profile-card { position:static; } }
+
+  /* ===== ENHANCED ANIMATIONS ===== */
+  .card, .feat-card, .stat-chip, .note-row, .task-item, .conn-card, .quiz-card {
+    animation: fadeUp .5s cubic-bezier(.4,0,.2,1) both;
+  }
+  .task-item { transition: all .22s cubic-bezier(.4,0,.2,1); }
+  .task-item:hover {
+    transform: translateX(4px);
+    border-color: rgba(201,135,58,.3);
+    box-shadow: 0 4px 16px rgba(26,18,8,.1);
+  }
+  .task-check { transition: all .3s cubic-bezier(.34,1.56,.64,1) !important; }
+  .task-check.checked {
+    transform: scale(1.15);
+    animation: checkBounce .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes checkBounce {
+    0%  { transform: scale(0); }
+    60% { transform: scale(1.3); }
+    100%{ transform: scale(1); }
+  }
+  .stat-chip { transition: all .22s ease; cursor: default; }
+  .stat-chip:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(26,18,8,.12);
+    border-color: rgba(201,135,58,.25);
+  }
+  .stat-chip .sc-val { transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+  .stat-chip:hover .sc-val { transform: scale(1.1); }
+  .section-title::after {
+    background: linear-gradient(90deg, var(--gold), var(--border), transparent);
+    animation: titleLine 2s ease both;
+  }
+  @keyframes titleLine {
+    from { transform: scaleX(0); transform-origin: left; }
+    to   { transform: scaleX(1); transform-origin: left; }
+  }
+  .upload-zone { transition: all .25s ease; }
+  .upload-zone:hover {
+    transform: scale(1.01);
+    box-shadow: 0 4px 20px rgba(201,135,58,.15);
+  }
+  tbody tr {
+    animation: fadeUp .35s ease both;
+    transition: background .2s ease, transform .2s ease !important;
+  }
+  tbody tr:hover { transform: translateX(2px); }
+  .badge { transition: all .2s cubic-bezier(.34,1.2,.64,1); }
+  .badge:hover { transform: scale(1.08) translateY(-1px); }
+  .form-group { position: relative; }
+  .btn { overflow: hidden; position: relative; }
+  .btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.25) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform .5s ease;
+  }
+  .btn:hover::after { transform: translateX(100%); }
+  .profile-avatar, .avatar-lg {
+    transition: transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease !important;
+  }
+  .profile-avatar:hover, .avatar-lg:hover {
+    transform: scale(1.08) rotate(-3deg) !important;
+    box-shadow: 0 8px 32px rgba(201,135,58,.5) !important;
+  }
+  .conn-card, .peer-card, .req-card { transition: all .22s ease; }
+  .conn-card:hover, .peer-card:hover, .req-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 32px rgba(26,18,8,.14);
+    border-color: rgba(201,135,58,.25);
+  }
+  .opt-item, .opt-label { transition: all .2s cubic-bezier(.34,1.2,.64,1) !important; }
+  .opt-item:hover, .opt-label:hover { transform: translateX(4px) !important; }
+  .progress-fill {
+    background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold3));
+    background-size: 200% 100%;
+    animation: shimmerBar 2.5s ease infinite !important;
+  }
+  @keyframes shimmerBar {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  .modal { animation: modalIn .35s cubic-bezier(.34,1.56,.64,1) both !important; }
+  .rank-list li:nth-child(1) { animation-delay: .0s; }
+  .rank-list li:nth-child(2) { animation-delay: .06s; }
+  .rank-list li:nth-child(3) { animation-delay: .12s; }
+  .rank-list li:nth-child(4) { animation-delay: .18s; }
+  /* ===== END ENHANCED ANIMATIONS ===== */
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="logo" href="dashboard.html"><div class="logo-icon">📚</div> Study Buddy</a>
+  <button class="hamburger" onclick="this.nextElementSibling.classList.toggle('open')">☰</button>
+  <nav class="main-nav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="notes.html">Notes</a>
+    <a href="planner.html">Planner</a>
+    <a href="test.html">Tests</a>
+    <a href="connection.html">Connect</a>
+    <a href="profile.html" class="active">Profile</a>
+  </nav>
+</header>
+
+<div class="page-wrap">
+  <div class="section-title fade-up">👤 My Profile</div>
+
+  <div class="profile-layout">
+
+    <!-- Profile card -->
+    <div class="profile-card fade-up">
+      <div class="profile-hero">
+        <div class="avatar-wrap">
+          <div class="avatar" id="avatarDisplay" onclick="document.getElementById('avatarInput').click()">🎓</div>
+          <div class="avatar-edit" onclick="document.getElementById('avatarInput').click()">✏️</div>
+          <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="updateAvatar(this)">
+        </div>
+        <h2 id="heroName">Student</h2>
+        <p id="heroCourse">BCA · Semester IV</p>
+        <div class="pts-badge"><span id="heroPts">350 pts</span></div>
+      </div>
+      <div class="profile-body">
+        <div class="info-row">
+          <span class="info-label">Name</span>
+          <span class="info-val" id="infoUsername">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Email</span>
+          <span class="info-val" id="infoEmail" style="font-size:.82rem;">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Course</span>
+          <span class="info-val" id="infoCourse">BCA</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Semester</span>
+          <span class="info-val" id="infoSemester">IV</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Subject</span>
+          <span class="info-val" id="infoSubject">—</span>
+        </div>
+        <div style="margin-top:1rem;">
+          <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="toggleEdit()">Edit Profile</button>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:.5rem;" onclick="logout()">Log Out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div>
+      <!-- Edit form -->
+      <div class="card edit-form fade-up" id="editForm" style="margin-bottom:1.5rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;">
+          <h3>Edit Profile</h3>
+          <button class="btn btn-secondary btn-sm" onclick="toggleEdit()">Cancel</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group"><label>Full Name</label><input type="text" id="editName" placeholder="Your name"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="editEmail" placeholder="Email"></div>
+          <div class="form-group"><label>Course</label><input type="text" id="editCourse" placeholder="e.g. BCA"></div>
+          <div class="form-group"><label>Semester</label><input type="text" id="editSemester" placeholder="e.g. IV"></div>
+        </div>
+        <div class="form-group">
+          <label>Primary Subject</label>
+          <select id="editSubject">
+            <option value="">Select</option>
+            <option value="DBMS">DBMS</option>
+            <option value="Operating System">Operating System</option>
+            <option value="Computer Networking">Computer Networking</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="English">English</option>
+            <option value="Science">Science</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+      </div>
+
+      <!-- Activity stats -->
+      <div class="card fade-up" style="margin-bottom:1.5rem;">
+        <div class="section-title" style="font-size:1.1rem;">Activity Overview</div>
+        <div class="activity-grid">
+          <div class="activity-tile"><div class="at-val" id="statNotes">0</div><div class="at-lbl">Notes Uploaded</div></div>
+          <div class="activity-tile"><div class="at-val" id="statTasks">0</div><div class="at-lbl">Tasks Done</div></div>
+          <div class="activity-tile"><div class="at-val" id="statTests">0</div><div class="at-lbl">Tests Taken</div></div>
+          <div class="activity-tile"><div class="at-val" id="statPts">350</div><div class="at-lbl">Total Points</div></div>
+        </div>
+      </div>
+
+      <!-- Subjects -->
+      <div class="card fade-up">
+        <div class="section-title" style="font-size:1.1rem;">Subjects I Study</div>
+        <div class="subj-chips" id="subjChips">
+          <span class="subj-chip selected">DBMS</span>
+          <span class="subj-chip">Operating System</span>
+          <span class="subj-chip">Computer Networking</span>
+          <span class="subj-chip">Mathematics</span>
+          <span class="subj-chip">English</span>
+          <span class="subj-chip">Science</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="site-footer">© 2026 Study Buddy · Your learning companion 😊</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:5500';
+
+function showToast(msg, type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+async function loadProfile() {
+  let p = {};
+  try {
+    const r = await fetch(`${API}/api/profile`);
+    p = await r.json();
+  } catch {}
+
+  // Merge with localStorage
+  const local = JSON.parse(localStorage.getItem('user')||'{}');
+  p = Object.assign({}, p, local);
+
+  document.getElementById('heroName').textContent     = p.name     || 'Student';
+  document.getElementById('heroCourse').textContent   = `${p.course||'BCA'} · Semester ${p.semester||'IV'}`;
+  document.getElementById('heroPts').textContent      = (p.points||350) + ' pts';
+  document.getElementById('infoUsername').textContent = p.name     || '—';
+  document.getElementById('infoEmail').textContent    = p.email    || '—';
+  document.getElementById('infoCourse').textContent   = p.course   || 'BCA';
+  document.getElementById('infoSemester').textContent = p.semester || 'IV';
+  document.getElementById('infoSubject').textContent  = p.subject  || '—';
+  document.getElementById('statPts').textContent      = p.points   || 350;
+
+  // Edit form defaults
+  document.getElementById('editName').value     = p.name     || '';
+  document.getElementById('editEmail').value    = p.email    || '';
+  document.getElementById('editCourse').value   = p.course   || 'BCA';
+  document.getElementById('editSemester').value = p.semester || 'IV';
+  document.getElementById('editSubject').value  = p.subject  || '';
+
+  // Avatar
+  if (p.avatar) {
+    document.getElementById('avatarDisplay').innerHTML = `<img src="${p.avatar}" alt="avatar">`;
+  }
+
+  // Activity stats from API
+  try {
+    const notesR = await fetch(`${API}/api/notes`);
+    const notes  = await notesR.json();
+    document.getElementById('statNotes').textContent = notes.length;
+
+    const tasksR = await fetch(`${API}/api/planner`);
+    const tasks  = await tasksR.json();
+    document.getElementById('statTasks').textContent = tasks.filter(t => t.is_completed == 1).length;
+  } catch {
+    const tasks = JSON.parse(localStorage.getItem('sb_tasks')||'[]');
+    document.getElementById('statTasks').textContent = tasks.filter(t=>t.done).length;
+  }
+
+  const tests = JSON.parse(localStorage.getItem('sb_results')||'{}');
+  document.getElementById('statTests').textContent = Object.keys(tests).length;
+}
+
+function toggleEdit() {
+  document.getElementById('editForm').classList.toggle('open');
+}
+
+async function saveProfile() {
+  const profile = {
+    name:     document.getElementById('editName').value.trim(),
+    email:    document.getElementById('editEmail').value.trim(),
+    course:   document.getElementById('editCourse').value.trim(),
+    semester: document.getElementById('editSemester').value.trim(),
+    subject:  document.getElementById('editSubject').value,
+  };
+
+  // Save to localStorage
+  const local = JSON.parse(localStorage.getItem('user')||'{}');
+  localStorage.setItem('user', JSON.stringify(Object.assign(local, profile)));
+
+  // Save to database
+  try {
+    await fetch(`${API}/api/profile`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(profile)
+    });
+  } catch {}
+
+  showToast('Profile saved!', 'success');
+  document.getElementById('editForm').classList.remove('open');
+  loadProfile();
+}
+
+function updateAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('avatarDisplay').innerHTML = `<img src="${e.target.result}" alt="avatar">`;
+    const local = JSON.parse(localStorage.getItem('user')||'{}');
+    local.avatar = e.target.result;
+    localStorage.setItem('user', JSON.stringify(local));
+    showToast('Avatar updated!', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function logout() {
+  localStorage.removeItem('user');
+  location.href = 'index.html';
+}
+
+// Subject chips toggle
+document.querySelectorAll('.subj-chip').forEach(chip => {
+  chip.addEventListener('click', () => chip.classList.toggle('selected'));
+});
+
+loadProfile();
+</script>
+
+<script>
+// ===== GLOBAL ANIMATION ENHANCEMENTS =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+document.querySelectorAll('.card, .stat-chip').forEach((el, i) => {
+  if (!el.style.animationDelay) {
+    el.style.animationDelay = (i * 0.05) + 's';
+    el.style.animation = 'fadeUp .5s cubic-bezier(.4,0,.2,1) both';
+    el.style.animationDelay = (i * 0.05) + 's';
+  }
+});
+
+setTimeout(() => {
+  document.querySelectorAll('.progress-fill[data-width]').forEach(el => {
+    el.style.width = el.dataset.width;
+  });
+}, 200);
+
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    const r = document.createElement('span');
+    const rect = this.getBoundingClientRect();
+    r.style.cssText = `
+      position:absolute;width:6px;height:6px;border-radius:50%;
+      background:rgba(255,255,255,.5);
+      left:${e.clientX-rect.left-3}px;top:${e.clientY-rect.top-3}px;
+      animation:ripple .5s ease forwards;pointer-events:none;
+    `;
+    if (!document.querySelector('#rippleStyle')) {
+      const s = document.createElement('style');
+      s.id = 'rippleStyle';
+      s.textContent = '@keyframes ripple{to{width:80px;height:80px;margin:-37px;opacity:0;}}';
+      document.head.appendChild(s);
+    }
+    this.style.overflow='hidden'; this.style.position='relative';
+    this.appendChild(r);
+    setTimeout(() => r.remove(), 500);
+  });
+});
+// ===== END GLOBAL ENHANCEMENTS =====
+</script>
+
+</body>
+</html>
