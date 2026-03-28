@@ -277,14 +277,30 @@
     </a>
   </div>
 
+  <!-- Questions/Assignments Section -->
+  <div class="card fade-up" style="margin-top:2rem;">
+    <div class="section-title" style="font-size:1.1rem;">📋 Assigned Questions</div>
+    <div id="questionsList" style="display:flex; flex-direction:column; gap:1rem;">
+      <div class="skeleton" style="height:100px;"></div>
+      <div class="skeleton" style="height:100px;"></div>
+    </div>
+  </div>
+
   <!-- Lower section -->
   <div class="dash-lower">
     <div class="card fade-up">
-      <div class="section-title" style="font-size:1.1rem;">📈 Study Progress</div>
-      <div class="progress-list" id="progressList">
-        <div class="skeleton" style="height:50px;"></div>
-        <div class="skeleton" style="height:50px;margin-top:.5rem;"></div>
-        <div class="skeleton" style="height:50px;margin-top:.5rem;"></div>
+      <div class="section-title" style="font-size:1.1rem;">📈 Assignment Progress</div>
+      <div style="padding: 1rem;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+          <span>Overall Progress</span>
+          <span id="progressPercent" style="font-weight:700; color:var(--gold);">0%</span>
+        </div>
+        <div style="width:100%; height:8px; background:var(--border); border-radius:4px; overflow:hidden;">
+          <div id="progressBar" style="height:100%; background:linear-gradient(90deg,var(--gold),#e8b06b); width:0%; transition:width 0.4s ease;"></div>
+        </div>
+        <div style="margin-top:0.8rem; font-size:0.85rem; color:var(--ink3);">
+          <span id="completedCount">0</span> of <span id="totalCount">0</span> assignments completed
+        </div>
       </div>
     </div>
     <div class="card fade-up" style="animation-delay:.08s;">
@@ -302,98 +318,70 @@
 <footer class="site-footer">© 2026 Study Buddy · Your learning companion 😊</footer>
 <div class="toast" id="toast"></div>
 
+<script src="api.js"></script>
 <script>
-const API = 'http://localhost:5500';
-
-function showToast(msg, type='') {
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.className='toast show '+type;
-  setTimeout(()=>t.classList.remove('show'),3000);
-}
-
-const user = JSON.parse(localStorage.getItem('user')||'{}');
-if (user.username) {
-  document.getElementById('welcomeMsg').textContent = `Welcome back, ${user.username} 👋`;
-  if (user.subject) document.getElementById('subjectBadge').textContent = user.subject;
-}
-
-// Animated counter
-function animateCount(el, target, duration=1200) {
-  let start = 0, startTime = null;
-  function step(ts) {
-    if (!startTime) startTime = ts;
-    const progress = Math.min((ts - startTime) / duration, 1);
-    const ease = 1 - Math.pow(1 - progress, 3);
-    el.textContent = Math.round(ease * target);
-    if (progress < 1) requestAnimationFrame(step);
+document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  
+  // Update welcome message
+  if (user.name) {
+    document.getElementById('welcomeMsg').textContent = `Welcome back, ${user.name} 👋`;
   }
-  requestAnimationFrame(step);
-}
-setTimeout(() => {
-  document.querySelectorAll('.count-up').forEach(el => {
-    animateCount(el, +el.dataset.target);
-  });
-}, 400);
+  if (user.course && user.semester) {
+    document.getElementById('userMeta').textContent = `${user.course} · ${user.semester}`;
+  }
+  
+  // Load dashboard data
+  loadDashboardQuestions();
+});
 
-async function loadProgress() {
+async function loadDashboardQuestions() {
   try {
-    const r = await fetch(`${API}/api/progress`);
-    const data = await r.json();
-    renderProgress(data);
-  } catch {
-    renderProgress([
-      {subject:'DBMS', percent:70},
-      {subject:'Computer Networks', percent:60},
-      {subject:'Software Engineering', percent:80}
-    ]);
+    const data = await fetchAPI('/dashboard');
+    if (!data.success && data.error) {
+      console.error('Error:', data.error);
+      return;
+    }
+    
+    // Update progress stats
+    const progress = data.progress;
+    document.getElementById('completedCount').textContent = progress.completed;
+    document.getElementById('totalCount').textContent = progress.total;
+    document.getElementById('progressPercent').textContent = progress.percent + '%';
+    
+    const progressBar = document.getElementById('progressBar');
+    if (progressBar) {
+      setTimeout(() => {
+        progressBar.style.width = progress.percent + '%';
+      }, 100);
+    }
+    
+    // Display questions
+    const questionsList = document.getElementById('questionsList');
+    if (data.questions && data.questions.length > 0) {
+      questionsList.innerHTML = data.questions.map(q => `
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.2rem; cursor:pointer; transition:all var(--transition); display:flex; justify-content:space-between; align-items:center;"
+             onclick="openQuestion(${q.id})" onmouseover="this.style.background='var(--gold-pale)'; this.style.borderColor='var(--gold)';" onmouseout="this.style.background='var(--surface)'; this.style.borderColor='var(--border)';">
+          <div style="flex:1;">
+            <h4 style="margin:0 0 0.3rem 0; color:var(--ink);">${q.title}</h4>
+            <p style="margin:0.3rem 0; font-size:0.85rem; color:var(--ink3);">${q.subject} · ${q.difficulty}</p>
+            <p style="margin:0.3rem 0; font-size:0.8rem; color:var(--ink3);">Due: ${q.due_date}</p>
+          </div>
+          <div style="text-align:right; min-width:100px;">
+            ${q.submitted ? '<span style="background:#2ecc71; color:white; padding:0.3rem 0.8rem; border-radius:20px; font-size:0.75rem; font-weight:600;">✅ Completed</span>' : '<span style="background:#f39c12; color:white; padding:0.3rem 0.8rem; border-radius:20px; font-size:0.75rem; font-weight:600;">⏳ Pending</span>'}
+            <div style="margin-top:0.5rem; font-weight:600; color:var(--gold);">${q.points} pts</div>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      questionsList.innerHTML = '<p style="color:var(--ink3); text-align:center; padding:2rem;">No questions assigned yet</p>';
+    }
+    
+  } catch (err) {
+    console.error('Dashboard load error:', err);
   }
 }
-
-function renderProgress(data) {
-  document.getElementById('progressList').innerHTML = data.map((d,i) => `
-    <div class="prog-item" style="animation-delay:${i*.1}s;">
-      <div class="prog-label">
-        <span>${d.subject}</span>
-        <span class="prog-pct">${d.percent}%</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" style="width:0%" data-width="${d.percent}%"></div>
-      </div>
-    </div>`).join('');
-  // Animate bars in after render
-  setTimeout(() => {
-    document.querySelectorAll('.progress-fill[data-width]').forEach(el => {
-      el.style.width = el.dataset.width;
-    });
-  }, 100);
-}
-
-async function loadRankings() {
-  try {
-    const r = await fetch(`${API}/api/ranking`);
-    const data = await r.json();
-    renderRankings(data);
-  } catch {
-    renderRankings([
-      {name:'Amit Kumar',points:420},
-      {name:'Sneha Patel',points:395},
-      {name:'Rahul Das',points:370},
-      {name:'You',points:350,isCurrentUser:true}
-    ]);
-  }
-}
-
-function renderRankings(data) {
-  document.getElementById('rankList').innerHTML = data.map((d,i) => `
-    <li class="rank-item ${d.isCurrentUser?'you':''}" style="animation-delay:${i*.07}s;">
-      <div class="rank-num">${i+1}</div>
-      <div class="rank-name">${d.name}${d.isCurrentUser?' <span style="font-size:.72rem;color:var(--gold);">(you)</span>':''}</div>
-      <div class="rank-pts">${d.points} pts</div>
-    </li>`).join('');
-}
-
-loadProgress();
-loadRankings();
 </script>
 </body>
 </html>

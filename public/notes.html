@@ -206,9 +206,9 @@
           <input type="text" id="subject" placeholder="e.g. DBMS">
         </div>
 
-        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;margin-bottom:1rem;cursor:pointer;">
-          <input type="checkbox" id="publicNote"> Make visible to all students
-        </label>
+        <p style="font-size:.85rem; color:var(--ink3); margin-bottom:1rem; padding:.8rem; background:var(--gold-pale); border-radius:8px;">
+          ✨ Your notes will be visible to all students!
+        </p>
 
         <div class="progress-bar-wrap" id="progressWrap">
           <div class="progress-track"><div class="progress-fill" id="uploadBar" style="width:0%"></div></div>
@@ -269,8 +269,8 @@
 <footer class="site-footer">© 2026 Study Buddy · Your learning companion 😊</footer>
 <div class="toast" id="toast"></div>
 
+<script src="api.js"></script>
 <script>
-const API = 'http://localhost:5500';
 let notes = [];
 let currentNote = null;
 
@@ -302,20 +302,26 @@ dz.addEventListener('drop', e => {
 async function uploadNote() {
   const file    = document.getElementById('fileInput').files[0];
   const subject = document.getElementById('subject').value.trim();
-  const isPublic= document.getElementById('publicNote').checked;
-  if (!file || !subject) return showToast('Please select a file and enter a subject', 'error');
+  
+  if (!file || !subject) {
+    return showToast('Please select a file and enter a subject', 'error');
+  }
 
   const fd = new FormData();
   fd.append('file', file);
   fd.append('subject', subject);
-  fd.append('public', isPublic);
-  fd.append('uploader', 'me');
 
   document.getElementById('progressWrap').style.display = 'block';
   const bar = document.getElementById('uploadBar');
   const pct = document.getElementById('uploadPct');
 
   try {
+    const token = getAuthToken();
+    if (!token) {
+      showToast('Please login to upload notes', 'error');
+      return;
+    }
+
     const xhr = new XMLHttpRequest();
     xhr.upload.onprogress = e => {
       if (e.lengthComputable) {
@@ -325,39 +331,49 @@ async function uploadNote() {
     };
     xhr.onload = () => {
       if (xhr.status < 300) {
-        showToast('Note uploaded successfully!', 'success');
+        showToast('Note uploaded successfully! Now visible to all students.', 'success');
         document.getElementById('fileInput').value='';
         document.getElementById('fileChosen').style.display='none';
         document.getElementById('subject').value='';
         document.getElementById('progressWrap').style.display='none';
         bar.style.width='0%';
         loadNotes();
-      } else { showToast('Upload failed', 'error'); }
+      } else {
+        const data = JSON.parse(xhr.responseText);
+        showToast(data.error || 'Upload failed', 'error');
+      }
     };
-    xhr.open('POST', `${API}/api/notes`);
+    xhr.onerror = () => showToast('Cannot connect to server', 'error');
+    xhr.open('POST', `http://127.0.0.1:3000/api/notes`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.send(fd);
-  } catch { showToast('Cannot connect to server', 'error'); }
+  } catch (err) {
+    console.error('Upload error:', err);
+    showToast('Error uploading note', 'error');
+  }
 }
 
 async function loadNotes() {
   try {
-    const r = await fetch(`${API}/api/notes`);
-    const data = await r.json();
+    const data = await fetchAPI('/notes');
+    if (!Array.isArray(data)) {
+      console.error('Invalid response:', data);
+      return;
+    }
+    
     notes = data.map(n => ({
-      id:       String(n.id),
-      subject:  n.subject_name,
-      filename: n.file_name,
-      uploader: n.uploader || 'me',
-      date:     n.uploaded_at ? n.uploaded_at.slice(0,10) : '',
-      public:   true,
-      url:      n.downloadUrl || '#'
+      id: String(n.id),
+      subject: n.subject,
+      filename: n.fileName,
+      uploader: n.uploader || 'Unknown',
+      date: n.uploaded_at ? n.uploaded_at.slice(0, 10) : 'N/A',
+      public: true,
+      url: n.downloadUrl || '#'
     }));
-  } catch {
-    notes = [
-      { id:'1', subject:'Software Engineering', filename:'Unit-1.pdf', uploader:'admin', date:'2026-03-01', public:true, url:'#' },
-      { id:'2', subject:'DBMS', filename:'Chapter2_ER_Diagram.pdf', uploader:'Rahul', date:'2026-03-10', public:true, url:'#' },
-      { id:'3', subject:'Computer Networks', filename:'OSI_Model_Notes.docx', uploader:'admin', date:'2026-03-15', public:false, url:'#' },
-    ];
+  } catch (err) {
+    console.error('Error loading notes:', err);
+    showToast('Failed to load notes', 'error');
+    notes = [];
   }
   renderTable();
 }
@@ -390,9 +406,9 @@ function renderTable() {
         <span class="file-ext ${extClass(n.filename)}">${ext(n)}</span>
         ${n.filename}
       </td>
-      <td>${n.uploader || '—'}</td>
-      <td style="color:var(--ink3);font-size:.82rem;">${n.date || ''}</td>
-      <td><a href="${n.url||'#'}" download class="btn btn-secondary btn-sm" onclick="event.stopPropagation()">⬇</a></td>
+      <td>${n.uploader}</td>
+      <td style="color:var(--ink3);font-size:.82rem;">${n.date}</td>
+      <td><a href="${n.url}" download class="btn btn-secondary btn-sm" onclick="event.stopPropagation()">⬇</a></td>
     </tr>`).join('');
 }
 
@@ -400,43 +416,40 @@ function openModal(id) {
   currentNote = notes.find(n => n.id === id);
   if (!currentNote) return;
   document.getElementById('modalTitle').textContent = currentNote.filename;
-  document.getElementById('modalDownload').href = currentNote.url || '#';
+  document.getElementById('modalDownload').href = currentNote.url;
   document.getElementById('modalBody').innerHTML = `
-    <p><strong>Subject:</strong> <input type="text" id="modalSubject" value="${currentNote.subject}" style="margin-top:.3rem;"></p>
-    <p style="margin-top:.8rem;"><strong>Uploader:</strong> ${currentNote.uploader || '—'}</p>
-    <p style="margin-top:.4rem;"><strong>Date:</strong> ${currentNote.date || '—'}</p>
-    <label style="display:flex;align-items:center;gap:.5rem;margin-top:.8rem;cursor:pointer;">
-      <input type="checkbox" id="modalPublic" ${currentNote.public?'checked':''}> Public
-    </label>`;
+    <p><strong>Subject:</strong> ${currentNote.subject}</p>
+    <p style="margin-top:.4rem;"><strong>Uploader:</strong> ${currentNote.uploader}</p>
+    <p style="margin-top:.4rem;"><strong>Date:</strong> ${currentNote.date}</p>`;
   document.getElementById('noteModal').classList.add('open');
 }
 
 function closeModal() { document.getElementById('noteModal').classList.remove('open'); }
 
-async function saveNote() {
-  if (!currentNote) return;
-  const subject  = document.getElementById('modalSubject').value.trim();
-  const isPublic = document.getElementById('modalPublic').checked;
-  try {
-    await fetch(`${API}/api/notes/${currentNote.id}`, {
-      method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ subject, public: isPublic })
-    });
-    showToast('Note updated', 'success'); closeModal(); loadNotes();
-  } catch { showToast('Failed to save', 'error'); }
-}
-
 async function deleteNote() {
   if (!currentNote) return;
   try {
-    await fetch(`${API}/api/notes/${currentNote.id}`, { method:'DELETE' });
-    showToast('Note deleted', 'success'); closeModal(); loadNotes();
-  } catch { showToast('Failed to delete', 'error'); }
+    const data = await fetchAPI(`/notes/${currentNote.id}`, { method: 'DELETE' });
+    if (data.success) {
+      showToast('Note deleted', 'success');
+      closeModal();
+      loadNotes();
+    } else {
+      showToast(data.error || 'Failed to delete', 'error');
+    }
+  } catch (err) {
+    console.error('Delete error:', err);
+    showToast('Failed to delete note', 'error');
+  }
 }
 
 document.getElementById('noteModal').addEventListener('click', e => { if(e.target===e.currentTarget)closeModal(); });
 
-loadNotes();
+// Load notes on page load
+document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+  loadNotes();
+});
 </script>
 
 <script>

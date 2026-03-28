@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Question Detail — Study Buddy</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .navbar {
+    background: linear-gradient(90deg, #1a1208, #2f1f0a);
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .navbar h1 { color: #fff; margin: 0; font-size: 1.3rem; }
+  .navbar a { color: var(--gold); text-decoration: none; font-weight: 600; cursor: pointer; }
+
+  .question-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 16px rgba(26,18,8,.08);
+  }
+
+  .question-card h2 {
+    color: var(--ink);
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  .question-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--ink3);
+    font-size: 0.95rem;
+  }
+
+  .meta-item strong { color: var(--ink); }
+
+  .difficulty { display: inline-block; padding: 0.4rem 0.8rem; background: var(--gold-pale); color: var(--gold); border-radius: 20px; font-weight: 600; font-size: 0.85rem; }
+
+  .question-text {
+    background: var(--bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .answer-section h3 {
+    color: var(--ink);
+    margin-bottom: 1rem;
+  }
+
+  .form-group { margin-bottom: 1.2rem; }
+  .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink); }
+  .form-group textarea {
+    width: 100%; padding: 1rem; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--bg); color: var(--ink);
+    font-family: 'Monaco', 'Menlo', monospace; font-size: 0.95rem;
+    min-height: 300px; resize: vertical;
+  }
+
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,135,58,.1);
+  }
+
+  .button-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .btn-submit {
+    flex: 1;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--gold), #e8b06b);
+    color: #1a1208;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(201,135,58,.3);
+  }
+
+  .btn-back {
+    flex: 1;
+    padding: 1rem;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-back:hover {
+    background: var(--surface);
+    border-color: var(--gold);
+  }
+
+  .success-message {
+    background: #2ecc71;
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  .submitted-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #2ecc71;
+    color: white;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-left: 1rem;
+  }
+</style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>📖 Question Detail</h1>
+    <a onclick="logoutUser()">Logout</a>
+  </div>
+
+  <div class="question-container">
+    <div class="question-card">
+      <div id="question-detail">
+        <p style="text-align: center; color: var(--ink3);">Loading question...</p>
+      </div>
+    </div>
+
+    <div class="question-card answer-section">
+      <h3>📝 Your Answer</h3>
+      <div class="success-message" id="success-msg">✅ Answer submitted successfully!</div>
+      
+      <div class="form-group">
+        <label for="answer-input">Write your answer below:</label>
+        <textarea id="answer-input" placeholder="Enter your answer here..."></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-submit" onclick="submitAnswer()">✅ Submit Answer</button>
+        <button class="btn-back" onclick="window.location.href='dashboard.html'">← Back to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      loadQuestionDetail();
+    });
+  </script>
+</body>
+</html>

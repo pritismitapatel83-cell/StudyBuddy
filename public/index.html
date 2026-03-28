@@ -211,7 +211,7 @@
         <div class="hero-features">
           <div class="hero-feat"><div class="hero-feat-icon">📝</div> Organize subject-wise notes</div>
           <div class="hero-feat"><div class="hero-feat-icon">📅</div> Plan daily study goals</div>
-          <div class="hero-feat"><div class="hero-feat-icon">🧪</div> Take & create quizzes</div>
+          <div class="hero-feat"><div class="hero-feat-icon">🧪</div> Take & create Quizes</div>
           <div class="hero-feat"><div class="hero-feat-icon">🤝</div> Connect with study partners</div>
         </div>
       </div>
@@ -230,57 +230,31 @@
         <h2>Welcome back</h2>
         <p class="form-sub">Sign in to your Study Buddy account</p>
         <div class="form-group">
-          <label>Username</label>
-          <input type="text" id="loginUsername" placeholder="Enter your username">
+          <label>Email or Username</label>
+          <input type="text" id="username" placeholder="your@email.com">
         </div>
         <div class="form-group">
           <label>Password</label>
-          <input type="password" id="loginPassword" placeholder="Enter your password">
+          <input type="password" id="password" placeholder="Enter your password">
         </div>
-        <div class="form-group">
-          <label>Subject (optional)</label>
-          <select id="loginSubject">
-            <option value="">Choose your subject</option>
-            <option value="DBMS">DBMS</option>
-            <option value="Operating System">Operating System</option>
-            <option value="Computer Networking">Computer Networking</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="English">English</option>
-            <option value="Science">Science</option>
-          </select>
-        </div>
-        <button class="btn btn-primary btn-full pulse-glow" onclick="doLogin()" id="loginBtn">Sign In →</button>
+        <button class="btn btn-primary btn-full pulse-glow" onclick="loginUser()">Sign In →</button>
+        <p style="text-align:center; margin-top:1.5rem; color: var(--ink3); font-size:0.9rem;">
+          Don't have an account? <a href="register.html" style="color: var(--gold); text-decoration:none; font-weight:600;">Register here</a>
+        </p>
       </div>
 
-      <!-- Register -->
+      <!-- Admin Login Info -->
       <div class="auth-form" id="registerForm">
-        <h2>Create account</h2>
-        <p class="form-sub">Join thousands of students learning together</p>
-        <div class="form-group">
-          <label>Username</label>
-          <input type="text" id="regUsername" placeholder="Choose a username">
+        <h2>Admin Login</h2>
+        <p class="form-sub">Admin credentials for testing</p>
+        <div style="background: var(--bg); padding:1.5rem; border-radius:10px; margin-bottom:1.5rem;">
+          <p style="margin: 0 0 0.5rem 0;"><strong>Email:</strong> <code style="background:#000; color:#2ecc71; padding:0.3rem 0.6rem; border-radius:4px; font-size:0.85rem;">admin@studybuddy.com</code></p>
+          <p style="margin: 0;"><strong>Password:</strong> <code style="background:#000; color:#2ecc71; padding:0.3rem 0.6rem; border-radius:4px; font-size:0.85rem;">admin123</code></p>
         </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="regEmail" placeholder="your@email.com">
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="regPassword" placeholder="Create a strong password">
-        </div>
-        <div class="form-group">
-          <label>Primary Subject</label>
-          <select id="regSubject">
-            <option value="">Select subject</option>
-            <option value="DBMS">DBMS</option>
-            <option value="Operating System">Operating System</option>
-            <option value="Computer Networking">Computer Networking</option>
-            <option value="Mathematics">Mathematics</option>
-            <option value="English">English</option>
-            <option value="Science">Science</option>
-          </select>
-        </div>
-        <button class="btn btn-primary btn-full" onclick="doRegister()" id="registerBtn">Create Account →</button>
+        <button class="btn btn-primary btn-full" onclick="document.getElementById('username').value='admin@studybuddy.com'; document.getElementById('password').value='admin123'; switchTab('login')">Login as Admin</button>
+        <p style="text-align:center; margin-top:1.5rem; color: var(--ink3); font-size:0.9rem;">
+          <a href="register.html" style="color: var(--gold); text-decoration:none; font-weight:600;">Create Student Account →</a>
+        </p>
       </div>
     </div>
   </div>
@@ -288,9 +262,8 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="api.js"></script>
 <script>
-const API = '';  // Empty because frontend and backend run on same port 3000
-
 function switchTab(tab) {
   const btns = document.querySelectorAll('.tab-btn');
   btns.forEach((b,i) => b.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register')));
@@ -310,52 +283,12 @@ function showToast(msg, type='') {
   setTimeout(() => t.classList.remove('show'), 3200);
 }
 
-async function doLogin() {
-  const btn = document.getElementById('loginBtn');
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const subject  = document.getElementById('loginSubject').value;
-  if (!username || !password) return showToast('Please fill in all fields', 'error');
-  btn.textContent = 'Signing in…'; btn.disabled = true;
-  try {
-    const r = await fetch(`${API}/api/login`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ username, password, subject })
-    });
-    const d = await r.json();
-    if (r.ok) {
-      localStorage.setItem('user', JSON.stringify(d.user || { username, subject }));
-      showToast('Welcome back! Redirecting…', 'success');
-      setTimeout(() => location.href = 'dashboard.html', 900);
-    } else { showToast(d.message || 'Login failed', 'error'); }
-  } catch { showToast('Cannot connect to server', 'error'); }
-  btn.textContent = 'Sign In →'; btn.disabled = false;
-}
-
-async function doRegister() {
-  const btn = document.getElementById('registerBtn');
-  const username = document.getElementById('regUsername').value.trim();
-  const email    = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value;
-  const subject  = document.getElementById('regSubject').value;
-  if (!username || !email || !password) return showToast('Please fill all fields', 'error');
-  btn.textContent = 'Creating…'; btn.disabled = true;
-  try {
-    const r = await fetch(`${API}/api/register`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ username, email, password, subject })
-    });
-    const d = await r.json();
-    if (r.ok) { showToast('Account created! Please sign in.', 'success'); switchTab('login'); }
-    else { showToast(d.message || 'Registration failed', 'error'); }
-  } catch { showToast('Cannot connect to server', 'error'); }
-  btn.textContent = 'Create Account →'; btn.disabled = false;
-}
-
+// Handle Enter key in login/register forms
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
-    if (document.getElementById('loginForm').classList.contains('visible')) doLogin();
-    else doRegister();
+    if (document.getElementById('loginForm').classList.contains('visible')) {
+      loginUser(); // Call loginUser from api.js
+    }
   }
 });
 

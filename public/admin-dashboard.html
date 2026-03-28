@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Study Buddy</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .admin-nav { background: #1a1208; padding: 1rem 2rem; display:flex; justify-content: space-between; align-items:center; border-bottom: 1px solid var(--border); }
+  .admin-nav h1 { margin: 0; color: #fff; }
+  .admin-nav button { background: #e8b06b; color: #1a1208; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  
+  .admin-container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+  
+  .admin-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin-bottom: 2rem; }
+  .admin-section h2 { color: var(--gold); margin-top: 0; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gold); padding-bottom: 1rem; }
+  
+  .form-group { margin-bottom: 1.2rem; }
+  .form-group label { display: block; font-weight: 600; margin-bottom: 0.4rem; color: var(--ink); }
+  .form-group input,
+  .form-group select,
+  .form-group textarea { width: 100%; padding: 0.7rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--ink); font-family: inherit; }
+  .form-group textarea { min-height: 120px; resize: vertical; }
+  
+  .btn-submit { background: var(--gold); color: #1a1208; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .btn-submit:hover { background: #e8b06b; transform: translateY(-2px); }
+  
+  .question-item { background: var(--bg); border-left: 4px solid var(--gold); padding: 1.2rem; margin-bottom: 1rem; border-radius: 8px; display:flex; justify-content:space-between; align-items:center; }
+  .question-item .question-header { flex:1; }
+  .question-item h4 { margin: 0 0 0.5rem 0; color: var(--ink); }
+  .question-item p { margin: 0; font-size: 0.9rem; color: var(--ink3); }
+  .difficulty-badge { display: inline-block; padding: 0.3rem 0.8rem; background: var(--gold-pale); color: var(--gold); border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-right: 1rem; }
+  
+  .submissions-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+  .submissions-table th { background: var(--bg); border-bottom: 2px solid var(--border); padding: 1rem; text-align: left; font-weight: 600; color: var(--ink); }
+  .submissions-table td { border-bottom: 1px solid var(--border); padding: 1rem; color: var(--ink); }
+  .submissions-table tr:hover { background: rgba(201,135,58,.05); }
+  
+  .status-badge { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+  .status-badge.completed { background: #2ecc71; color: white; }
+  .status-badge.pending { background: #f39c12; color: white; }
+</style>
+</head>
+<body>
+  <div class="admin-nav">
+    <h1>📋 Admin Dashboard</h1>
+    <button onclick="logoutUser()">Logout</button>
+  </div>
+
+  <div class="admin-container">
+    <!-- Upload Questions Section -->
+    <div class="admin-section">
+      <h2>📝 Upload Question</h2>
+      <form onsubmit="event.preventDefault(); uploadQuestion();">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label>Subject *</label>
+            <input type="text" id="q-subject" placeholder="e.g., DBMS" required>
+          </div>
+          <div class="form-group">
+            <label>Difficulty Level</label>
+            <select id="q-difficulty">
+              <option value="Easy">Easy</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Question Title *</label>
+          <input type="text" id="q-title" placeholder="e.g., Database Design Assignment" required>
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="q-description" placeholder="Brief description of the question"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Question Text *</label>
+          <textarea id="q-text" placeholder="Full question details..." required></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label>Due Date *</label>
+            <input type="date" id="q-due-date" required>
+          </div>
+          <div class="form-group">
+            <label>Points</label>
+            <input type="number" id="q-points" value="10" min="1">
+          </div>
+        </div>
+
+        <h3 style="color:var(--gold); margin-top:1rem; margin-bottom:1rem;">MCQ Options (Optional)</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label>Option A</label>
+            <input type="text" id="q-opt-a" placeholder="Text for option A">
+          </div>
+          <div class="form-group">
+            <label>Option B</label>
+            <input type="text" id="q-opt-b" placeholder="Text for option B">
+          </div>
+          <div class="form-group">
+            <label>Option C</label>
+            <input type="text" id="q-opt-c" placeholder="Text for option C">
+          </div>
+          <div class="form-group">
+            <label>Option D</label>
+            <input type="text" id="q-opt-d" placeholder="Text for option D">
+          </div>
+        </div>
+        <div class="form-group" style="max-width:300px;">
+          <label>Correct Option</label>
+          <select id="q-correct-opt">
+            <option value="">None (Not an MCQ)</option>
+            <option value="A">Option A</option>
+            <option value="B">Option B</option>
+            <option value="C">Option C</option>
+            <option value="D">Option D</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-submit">📤 Upload Question / Test</button>
+      </form>
+    </div>
+
+    <!-- Questions List Section -->
+    <div class="admin-section">
+      <h2>📚 Your Questions</h2>
+      <div id="admin-questions-list">
+        <p>Loading...</p>
+      </div>
+    </div>
+
+    <!-- Student Submissions Section -->
+    <div class="admin-section">
+      <h2>✍️ Student Submissions</h2>
+      <table class="submissions-table">
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Student Name</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Score</th>
+            <th>Answer Preview</th>
+            <th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody id="submissions-tbody">
+          <tr><td colspan="7" style="text-align:center; padding: 2rem;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadAdminQuestions();
+      loadAdminSubmissions();
+    });
+  </script>
+</body>
+</html>

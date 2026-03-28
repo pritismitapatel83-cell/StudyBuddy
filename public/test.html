@@ -277,16 +277,17 @@
 <footer class="site-footer">© 2026 Study Buddy · Your learning companion 😊</footer>
 <div class="toast" id="toast"></div>
 
+<script src="api.js"></script>
 <script>
-const API = 'http://localhost:5500';
 let tests = [];
 let currentTest = null;
 let answers = {};
 
 function showToast(msg, type='') {
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.className='toast show '+type;
-  setTimeout(()=>t.classList.remove('show'),3000);
+  const t = document.getElementById('toast');
+  t.textContent = msg; 
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 function toggleAdmin() {
@@ -297,19 +298,15 @@ function toggleAdmin() {
 /* ── Load tests ── */
 async function loadTests() {
   try {
-    const r = await fetch(`${API}/api/tests`);
-    tests = await r.json();
-  } catch {
-    tests = JSON.parse(localStorage.getItem('sb_tests') || '[]');
-    if (!tests.length) {
-      tests = [{
-        id:'demo1', title:'DBMS Basics Quiz', date:'2026-03-25', time:'10:00',
-        questions:[
-          { q:'What does DBMS stand for?', options:['Data Base Management System','Digital Binary Management System','Data Byte Mapping System','Database Machine System'], correct:0 },
-          { q:'Which of these is a relational database?', options:['MongoDB','Redis','PostgreSQL','Cassandra'], correct:2 },
-        ]
-      }];
+    const data = await fetchAPI('/tests/available');
+    if (data.success && data.tests) {
+      tests = data.tests;
+    } else {
+      tests = [];
     }
+  } catch (err) {
+    console.error('Failed to load tests', err);
+    tests = [];
   }
   renderTests();
 }
@@ -317,96 +314,29 @@ async function loadTests() {
 function renderTests() {
   const grid = document.getElementById('testGrid');
   if (!tests.length) {
-    grid.innerHTML = '<p style="color:var(--ink3);">No tests available yet. Enable admin mode to create one.</p>';
+    grid.innerHTML = '<p style="color:var(--ink3);">No tests available at the moment. Check back later!</p>';
     return;
   }
   grid.innerHTML = tests.map(t => `
     <div class="test-card fade-up" onclick="openTest('${t.id}')">
       <div class="test-card-header">
         <h3>${t.title}</h3>
-        <div class="test-meta">${t.date || ''} ${t.time ? '· '+t.time : ''}</div>
+        <div class="test-meta">${t.subject}</div>
       </div>
       <div class="test-card-body">
         <p>${(t.questions||[]).length} question${(t.questions||[]).length!==1?'s':''}</p>
       </div>
       <div class="test-card-footer">
         <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openTest('${t.id}')">Take Test</button>
-        ${document.getElementById('adminToggle').checked ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteTest('${t.id}')">Delete</button>` : ''}
       </div>
     </div>`).join('');
 }
 
-/* ── Create test ── */
-let qCount = 0;
+/* ── Create test (Disabled for normal students, Admin does this via dashboard) ── */
 function openCreatePanel() {
-  document.getElementById('createPanel').classList.add('open');
-  document.getElementById('createPanel').scrollIntoView({behavior:'smooth',block:'start'});
-  addQuestion();
-}
-function closeCreatePanel() {
-  document.getElementById('createPanel').classList.remove('open');
-  document.getElementById('questionsContainer').innerHTML = '';
-  qCount = 0;
-}
-
-function addQuestion() {
-  qCount++;
-  const id = `q_${qCount}`;
-  const div = document.createElement('div');
-  div.className = 'question-block'; div.id = id;
-  div.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;">
-      <strong style="font-size:.88rem;">Question ${qCount}</strong>
-      <button class="btn btn-danger btn-sm" onclick="this.closest('.question-block').remove()">Remove</button>
-    </div>
-    <div class="form-group" style="margin-bottom:.7rem;">
-      <input type="text" name="q" placeholder="Question text">
-    </div>
-    ${[0,1,2,3].map(i=>`
-      <div class="option-row">
-        <input type="text" name="opt" placeholder="Option ${i+1}">
-        <label><input type="radio" name="correct_${id}" value="${i}"> Correct</label>
-      </div>`).join('')}`;
-  document.getElementById('questionsContainer').appendChild(div);
-}
-
-async function saveTest() {
-  const title = document.getElementById('testTitle').value.trim();
-  const date  = document.getElementById('testDate').value;
-  const time  = document.getElementById('testTime').value;
-  if (!title) return showToast('Enter a test title', 'error');
-
-  const questions = [];
-  document.querySelectorAll('.question-block').forEach(block => {
-    const q   = block.querySelector('[name=q]').value.trim();
-    const opts = [...block.querySelectorAll('[name=opt]')].map(i=>i.value.trim());
-    const cor  = block.querySelector('[type=radio]:checked')?.value;
-    if (q && opts.some(o=>o)) questions.push({ q, options:opts, correct: cor!=null?+cor:0 });
-  });
-  if (!questions.length) return showToast('Add at least one question', 'error');
-
-  const test = { id: Date.now().toString(), title, date, time, questions };
-  try {
-    const r = await fetch(`${API}/api/tests`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(test)
-    });
-    tests.push(await r.json());
-  } catch {
-    tests.push(test);
-    localStorage.setItem('sb_tests', JSON.stringify(tests));
-  }
-  showToast('Test created!', 'success');
-  closeCreatePanel();
-  renderTests();
-}
-
-async function deleteTest(id) {
-  try { await fetch(`${API}/api/tests/${id}`, { method:'DELETE' }); }
-  catch {}
-  tests = tests.filter(t=>t.id!==id);
-  localStorage.setItem('sb_tests', JSON.stringify(tests));
-  renderTests();
+  alert('Please use the Admin Dashboard to upload questions/tests.');
+  document.getElementById('adminToggle').checked = false;
+  toggleAdmin();
 }
 
 /* ── Take test ── */
@@ -420,67 +350,113 @@ function openTest(id) {
   renderTestQuestions();
   document.getElementById('takePanel').classList.add('open');
   document.getElementById('takePanel').scrollIntoView({behavior:'smooth',block:'start'});
+  
+  // Try to pre-fill name if user is logged in
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (user.name) document.getElementById('userName').value = user.name;
 }
 
 function closeTakePanel() {
   document.getElementById('takePanel').classList.remove('open');
-  document.getElementById('testGrid').style.display = '';
+  document.getElementById('testGrid').style.display = 'grid';
 }
 
 function renderTestQuestions() {
   const area = document.getElementById('testArea');
-  area.innerHTML = (currentTest.questions||[]).map((q,qi) => `
-    <div class="question-take" id="qtake_${qi}">
-      <h4>${qi+1}. ${q.q}</h4>
-      ${(q.options||[]).filter(o=>o).map((o,oi) => `
-        <button class="option-btn" id="opt_${qi}_${oi}" onclick="pickAnswer(${qi},${oi})">${o}</button>`).join('')}
-    </div>`).join('');
+  area.innerHTML = (currentTest.questions||[]).map((q,qi) => {
+    let optionsHtml = '';
+    if (q.options && q.options.length > 0) {
+      optionsHtml = q.options.map((o) => `
+        <button class="option-btn" id="opt_${q.id}_${o.id}" onclick="pickAnswer(${qi}, '${q.id}', '${o.id}')">
+          <strong>${o.id}.</strong> ${o.text}
+        </button>`).join('');
+    } else {
+      optionsHtml = `<textarea class="form-group" style="width:100%; min-height:80px; padding:10px; border-radius:8px; border:1px solid var(--border);" placeholder="Type your answer here..." onchange="pickTextAnswer(${qi}, '${q.id}', this.value)"></textarea>`;
+    }
+
+    return `
+    <div class="question-take" id="qtake_${q.id}">
+      <h4>${qi+1}. ${q.q} <span style="font-size:0.8rem; color:var(--ink3); font-weight:normal;">(${q.points} pts)</span></h4>
+      ${optionsHtml}
+    </div>`;
+  }).join('');
   document.getElementById('submitBtn').style.display = 'inline-flex';
 }
 
-function pickAnswer(qi, oi) {
-  answers[qi] = oi;
-  const block = document.getElementById(`qtake_${qi}`);
-  block.querySelectorAll('.option-btn').forEach((b,i) => {
-    b.classList.toggle('correct', i === oi);
+function pickAnswer(qi, qId, optId) {
+  answers[qId] = optId;
+  const block = document.getElementById(`qtake_${qId}`);
+  block.querySelectorAll('.option-btn').forEach((b) => {
+    b.classList.toggle('correct', b.id === `opt_${qId}_${optId}`);
     b.classList.remove('wrong');
   });
 }
 
-function submitTest() {
-  const name = document.getElementById('userName').value.trim() || 'Anonymous';
-  let score = 0;
-  (currentTest.questions||[]).forEach((q,qi) => {
-    const block = document.getElementById(`qtake_${qi}`);
-    const picked = answers[qi];
-    block.querySelectorAll('.option-btn').forEach((b,i) => {
-      b.disabled = true;
-      b.classList.remove('correct','wrong');
-      if (i === q.correct) b.classList.add('reveal');
-      else if (i === picked && picked !== q.correct) b.classList.add('wrong');
-    });
-    if (picked === q.correct) score++;
-  });
-  const total = currentTest.questions.length;
-  const pct   = Math.round(score/total*100);
-
-  // Save to leaderboard
-  const results = JSON.parse(localStorage.getItem('sb_results')||'{}');
-  results[name] = (results[name]||0) + score;
-  localStorage.setItem('sb_results', JSON.stringify(results));
-
-  // Show modal
-  document.getElementById('summaryScore').textContent = score;
-  document.getElementById('summaryOf').textContent = `out of ${total}`;
-  document.getElementById('summaryGrade').textContent = pct >= 80 ? '🎉 Excellent!' : pct >= 50 ? '👍 Good effort' : '📖 Keep studying!';
-  document.getElementById('summaryDetails').innerHTML = `<p style="font-size:.9rem;text-align:center;color:var(--ink3);">${name} scored ${pct}% · ${score}/${total} correct</p>`;
-  document.getElementById('summaryModal').classList.add('open');
+function pickTextAnswer(qi, qId, text) {
+  answers[qId] = text;
 }
 
-function closeSummary() { document.getElementById('summaryModal').classList.remove('open'); }
+async function submitTest() {
+  const name = document.getElementById('userName').value.trim() || 'Student';
+  
+  // Make API call
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting...';
+
+  try {
+    const data = await fetchAPI('/tests/submit', {
+      method: 'POST',
+      body: JSON.stringify({
+        test_id: currentTest.id,
+        answers: answers
+      })
+    });
+
+    if (data.success) {
+      // Highlight selections 
+      (currentTest.questions||[]).forEach((q) => {
+        const block = document.getElementById(`qtake_${q.id}`);
+        if (block) {
+          block.querySelectorAll('.option-btn, textarea').forEach(b => b.disabled = true);
+        }
+      });
+      
+      const score = data.score || 0;
+      const total = data.total || 0;
+      const pct = data.percent || 0;
+
+      // Show modal
+      document.getElementById('summaryScore').textContent = score;
+      document.getElementById('summaryOf').textContent = `out of ${total}`;
+      document.getElementById('summaryGrade').textContent = pct >= 80 ? '🎉 Excellent!' : pct >= 50 ? '👍 Good effort' : '📖 Keep studying!';
+      document.getElementById('summaryDetails').innerHTML = `<p style="font-size:.9rem;text-align:center;color:var(--ink3);">${name} scored ${pct}%</p>`;
+      document.getElementById('summaryModal').classList.add('open');
+      
+      // Refresh list to remove submitted test
+      loadTests();
+    } else {
+      showToast(data.error || 'Failed to submit test', 'error');
+    }
+  } catch (err) {
+    showToast('Error submitting test', 'error');
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit Test →';
+  }
+}
+
+function closeSummary() { 
+  document.getElementById('summaryModal').classList.remove('open'); 
+  closeTakePanel(); 
+}
 document.getElementById('summaryModal').addEventListener('click', e=>{ if(e.target===e.currentTarget)closeSummary(); });
 
-loadTests();
+document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+  loadTests();
+});
 </script>
 
 <script>
